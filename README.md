@@ -1,5 +1,5 @@
-# sfserver
-## Simple File Server
+# sfclient
+## Simple File Client
 
 A local file server written in C for learning Inter Process Communications.
 
