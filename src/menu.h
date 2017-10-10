@@ -2,6 +2,11 @@
 
 #define BUFFER_MAX 100
 #define PROMPT "Enter a number: "
+
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #include <stdbool.h>
 
 enum menu_opt {
