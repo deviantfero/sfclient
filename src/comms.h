@@ -11,7 +11,7 @@
 #include <stdbool.h>
 
 #define COMMS_H
-#define MAX_BUFFER 100
+#define MAX_BUFFER 1024
 #define MSG_LS     "ls"
 #define MSG_STATUS "status"
 #define MSG_UPLD   "upload"
