@@ -9,7 +9,7 @@ void send_message(const char *pipe_name, char *msg, bool do_unlink) {
 	int fifod = open(pipe_name, O_WRONLY);
 	char *processed_message = malloc(MAX_BUFFER);
 
-	snprintf(processed_message, MAX_BUFFER, "%s;%d\n", msg, getpid());
+	snprintf(processed_message, MAX_BUFFER, "%s;%d", msg, getpid());
 	write(fifod, processed_message, MAX_BUFFER);
 	close(fifod);
 

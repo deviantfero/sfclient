@@ -17,6 +17,7 @@
 #define MSG_UPLD   "upload"
 #define MSG_DOWNLD "download"
 #define MSG_EXIT   "bye"
+#define MSG_ARRIVE "hello"
 
 /* messages should follow format "what;pid" */
 void send_message(const char *pipe_name, char *msg, bool do_unlink);
