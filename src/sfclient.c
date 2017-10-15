@@ -11,12 +11,22 @@
 
 
 int main(void) {
-	printf(":: Simple File Client\n");
 
 	const char* fifo_path = "/tmp/fifo";
+	/* two pipes per client for an individual thread
+	 * in the server, one for reading, one for writing. */
+	char *self_read = malloc(MAX_BUFFER); 
+	char *self_write = malloc(MAX_BUFFER);
+
+	snprintf(self_read, MAX_BUFFER, "/tmp/sfc%dr", getpid());
+	snprintf(self_write, MAX_BUFFER, "/tmp/sfc%dw", getpid());
 
 	struct options *active_opts = get_default_opts();
 	enum menu_opt opt;
+
+	puts("Waiting for server...");
+	send_message(fifo_path, MSG_ARRIVE, true);
+	puts(":: Simple File Client");
 
 	while(opt != EXIT) {
 		opt = run_menu(active_opts);
