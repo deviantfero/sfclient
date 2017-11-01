@@ -12,7 +12,7 @@
 
 int main(void) {
 
-	const char* fifo_path = "/tmp/fifo";
+	const char* sfs_path = "/tmp/sfs";
 	/* two pipes per client for an individual thread
 	 * in the server, one for reading, one for writing. */
 	char *self_read = malloc(MAX_BUFFER); 
@@ -25,7 +25,7 @@ int main(void) {
 	enum menu_opt opt;
 
 	puts("Waiting for server...");
-	send_message(fifo_path, MSG_ARRIVE, true);
+	send_message(sfs_path, MSG_ARRIVE, true);
 	puts(":: Simple File Client");
 
 	while(opt != EXIT) {
@@ -33,7 +33,7 @@ int main(void) {
 		system("clear");
 		switch(opt) {
 			case SERVER_LS:
-				send_message(fifo_path, MSG_LS, true);
+				send_message(self_write, MSG_LS, true);
 				// wait message in process fifo file
 				/* wait_message("/tmp/fifo2"); */
 				break;
@@ -54,7 +54,7 @@ int main(void) {
 				break;
 			case NOT_VALID: break;
 			case EXIT: 
-				send_message(fifo_path, MSG_EXIT, true);
+				send_message(self_write, MSG_EXIT, true);
 				exit(0);
 		}
 
