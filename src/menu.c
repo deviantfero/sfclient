@@ -29,6 +29,13 @@ int run_menu(struct options *copt) {
 	return opt;
 }
 
+void info_screen(char *info) {
+	system("clear");
+	fprintf(stdout, "%s\nPress enter", info);
+	getchar();
+	system("clear");
+}
+
 struct options *get_default_opts() {
 	struct options *default_opts = malloc(sizeof(default_opts));
 	default_opts->encrypt = false;

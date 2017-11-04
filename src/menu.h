@@ -27,6 +27,7 @@ struct options {
 };
 
 void print_menu(struct options *copt);
+void info_screen(char *info);
 int run_menu(struct options *copt);
 struct options *get_default_opts();
 
