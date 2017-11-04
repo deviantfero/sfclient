@@ -6,8 +6,11 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ioctl.h>
 #include "comms.h"
 #include "menu.h"
+
+#define WAIT_TIME 100000
 
 
 int main(void) {
@@ -17,6 +20,7 @@ int main(void) {
 	 * in the server, one for reading, one for writing. */
 	char *self_read = malloc(MAX_BUFFER); 
 	char *self_write = malloc(MAX_BUFFER);
+	char **server_response;
 
 	snprintf(self_read, MAX_BUFFER, "/tmp/sfc%dr", getpid());
 	snprintf(self_write, MAX_BUFFER, "/tmp/sfc%dw", getpid());
@@ -29,16 +33,20 @@ int main(void) {
 	puts(":: Simple File Client");
 
 	while(opt != EXIT) {
-		opt = run_menu(active_opts);
 		system("clear");
+		opt = run_menu(active_opts);
 		switch(opt) {
 			case SERVER_LS:
 				send_message(self_write, MSG_LS, true);
-				// wait message in process fifo file
-				/* wait_message("/tmp/fifo2"); */
+				usleep(WAIT_TIME);
+				server_response = wait_message(self_read);
+				info_screen(server_response[0]);
 				break;
 			case SERVER_STATE:
-				//call server state here
+				send_message(self_write, MSG_STATUS, true);
+				usleep(WAIT_TIME);
+				char** server_response = wait_message(self_read);
+				info_screen(server_response[0]);
 				break;
 			case UPLD_FILE:
 				//upload file
@@ -57,7 +65,6 @@ int main(void) {
 				send_message(self_write, MSG_EXIT, true);
 				exit(0);
 		}
-
 	}
 	return 0;
 }
