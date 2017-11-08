@@ -10,12 +10,13 @@ void print_menu(struct options *copt) {
 	puts("\t4. Download a file");
 	printf("\t5. Encrypt transfer %s\n", encryption_entry);
 	printf("\t6. Compress transfer %s\n", compression_entry);
-	puts("\t7. Exit");
+	printf("\t7. See client content\n");
+	puts("\t8. Exit");
 	printf(PROMPT);
 }
 
 int run_menu(struct options *copt) {
-	enum menu_opt opt = NOT_VALID;
+	enum menu_opt opt;
 	char *tmp = malloc(BUFFER_MAX);
 	if(tmp == NULL) exit(2);
 
@@ -27,6 +28,19 @@ int run_menu(struct options *copt) {
 	} while(opt == NOT_VALID);
 
 	return opt;
+}
+
+int choose_file(const char *dir_status, int file_count) {
+	char *tmp = malloc(BUFFER_MAX);
+	if(tmp == NULL) exit(2);
+	int opt;
+	do {
+		fprintf(stdout, "%s\nInput a file number: ", dir_status);
+		fgets(tmp, BUFFER_MAX, stdin);
+		opt = atoi(tmp);
+	} while(opt < 1 || opt > file_count);
+
+	return opt - 1;
 }
 
 void info_screen(char *info) {
