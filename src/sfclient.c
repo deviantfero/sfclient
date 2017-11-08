@@ -9,9 +9,11 @@
 #include <sys/ioctl.h>
 #include "comms.h"
 #include "menu.h"
+#include "status.h"
+#include "transfer.h"
 
-#define WAIT_TIME 100000
 
+struct client_status *status;
 
 int main(void) {
 
@@ -20,50 +22,67 @@ int main(void) {
 	 * in the server, one for reading, one for writing. */
 	char *self_read = malloc(MAX_BUFFER); 
 	char *self_write = malloc(MAX_BUFFER);
-	char **server_response;
+	char **response, *dir_status;
+	int tmp_buffer_size = 0;
+
+	status = malloc(sizeof(struct client_status*));
 
 	snprintf(self_read, MAX_BUFFER, "/tmp/sfc%dr", getpid());
 	snprintf(self_write, MAX_BUFFER, "/tmp/sfc%dw", getpid());
 
-	struct options *active_opts = get_default_opts();
-	enum menu_opt opt;
+	status->opts = get_default_opts();
+	status->dir = DEFAULT_DIR;
+	status->current_dir = get_dir_contents(status->dir);
+	char *file_menu = sprint_dir_status(status); 
+	enum menu_opt opt = SERVER_LS;
 
+	/* shake hands */
 	puts("Waiting for server...");
 	send_message(sfs_path, MSG_ARRIVE, true);
-	puts(":: Simple File Client");
+	response = wait_message(sfs_path, DFT_TRIES);
+	status->server_pid = atoi(response[SENDER]);
+	status->server_dir = response[SIGNAL];
 
 	while(opt != EXIT) {
 		system("clear");
-		opt = run_menu(active_opts);
+		opt = run_menu(status->opts);
 		switch(opt) {
 			case SERVER_LS:
 				send_message(self_write, MSG_LS, true);
-				usleep(WAIT_TIME);
-				server_response = wait_message(self_read);
-				info_screen(server_response[0]);
+				response = wait_message(self_read, DFT_TRIES);
+				info_screen(response[SIGNAL]);
 				break;
 			case SERVER_STATE:
 				send_message(self_write, MSG_STATUS, true);
-				usleep(WAIT_TIME);
-				char** server_response = wait_message(self_read);
-				info_screen(server_response[0]);
+				response = wait_message(self_read, DFT_TRIES);
+				info_screen(response[SIGNAL]);
 				break;
 			case UPLD_FILE:
-				//upload file
+				opt = choose_file(file_menu, status->current_dir->file_count);
+				send_message(self_write, MSG_UPLD, true);
+				send_message(self_write, status->current_dir->files[opt], true);
+				upload_file(self_write, status->current_dir->files[opt], 0, NULL);
+				fprintf(stdout, "Press enter to continue...");
+				while(getchar() != 10);
 				break;
 			case DWNLD_FILE:
 				//download file
 				break;
 			case TOGGLE_ENCRYPTION:
-				active_opts->encrypt = !active_opts->encrypt;
+				status->opts->encrypt = !status->opts->encrypt;
 				break;
 			case TOGGLE_COMPRESSION:
-				active_opts->compress = !active_opts->compress;
+				status->opts->compress = !status->opts->compress;
+				break;
+			case CLIENT_LS:
+				dir_status = sprint_dir_status(status);
+				info_screen(dir_status);
 				break;
 			case NOT_VALID: break;
 			case EXIT: 
 				send_message(self_write, MSG_EXIT, true);
 				exit(0);
+			default: break;
 		}
 	}
 	return 0;
