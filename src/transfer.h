@@ -20,7 +20,7 @@ enum method {
 	SOCKETS
 };
 
-void upload_file(const char *pipe_name, const char *src, size_t max_rate, enum method *m);
+void upload_file(const char *pipe_name, const char *read_name, char *src, size_t max_rate, enum method *m);
 void fprogress_bar(FILE *file, off_t total_size, size_t transfered);
 
 #endif /* ifndef TRANSFER_H */
