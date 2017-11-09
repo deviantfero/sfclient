@@ -41,7 +41,6 @@ char **wait_message(const char *pipe_name, int tries) {
 		usleep(WAIT_TIME);
 		close(fifod);
 		free(msg_buffer);
-		printf("here %d\n", tries);
 		return wait_message(pipe_name, tries - 1);
 	} else {
 		msg[SIGNAL] = "TIME_OUT";
