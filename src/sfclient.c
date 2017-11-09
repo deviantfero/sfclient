@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+
 #include "comms.h"
 #include "menu.h"
 #include "status.h"
@@ -16,14 +17,12 @@
 struct client_status *status;
 
 int main(void) {
-
 	const char* sfs_path = "/tmp/sfs";
 	/* two pipes per client for an individual thread
 	 * in the server, one for reading, one for writing. */
 	char *self_read = malloc(MAX_BUFFER); 
 	char *self_write = malloc(MAX_BUFFER);
 	char **response, *dir_status;
-	int tmp_buffer_size = 0;
 
 	status = malloc(sizeof(struct client_status*));
 
@@ -60,8 +59,7 @@ int main(void) {
 			case UPLD_FILE:
 				opt = choose_file(file_menu, status->current_dir->file_count);
 				send_message(self_write, MSG_UPLD, true);
-				send_message(self_write, status->current_dir->files[opt], true);
-				upload_file(self_write, status->current_dir->files[opt], 0, NULL);
+				upload_file(self_write, self_read, status->current_dir->files[opt], 0, NULL);
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 				break;
