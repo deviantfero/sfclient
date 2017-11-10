@@ -18,7 +18,7 @@
 #define SIGNAL 0
 #define SENDER 1
 #define MAX_TOKENS 10
-#define DFT_TRIES  5
+#define DFT_TRIES  7
 #define WAIT_TIME  10000
 #define MAX_BUFFER 4096
 #define MSG_LS     "ls"

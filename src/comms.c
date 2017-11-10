@@ -40,21 +40,21 @@ char **wait_message(const char *pipe_name, int tries) {
 	if(err == -1 && tries > 0) {
 		usleep(WAIT_TIME);
 		close(fifod);
-		free(msg_buffer);
 		return wait_message(pipe_name, tries - 1);
-	} else {
+	} else if(tries == 0){
 		msg[SIGNAL] = "TIME_OUT";
 		msg[SENDER] = "0";
+		close(fifod);
+		return msg;
 	}
 
 
 	msg[SENDER] = malloc(count);
 	msg[SIGNAL] = malloc(count);
-	snprintf(msg[SENDER], 7, "%s", msg_buffer);
+	snprintf(msg[SENDER], 8, "%s", msg_buffer);
 	snprintf(msg[SIGNAL], count - 7, "%s", msg_buffer + 7);
 
 	close(fifod);
-	free(msg_buffer);
 	return msg;
 }
 
