@@ -37,7 +37,7 @@ int main(void) {
 
 	/* shake hands */
 	puts("Waiting for server...");
-	send_message(sfs_path, MSG_ARRIVE, true);
+	send_message(sfs_path, MSG_ARRIVE, false);
 	response = wait_message(sfs_path, DFT_TRIES);
 	status->server_pid = atoi(response[SENDER]);
 	status->server_dir = response[SIGNAL];
@@ -47,19 +47,19 @@ int main(void) {
 		opt = run_menu(status->opts);
 		switch(opt) {
 			case SERVER_LS:
-				send_message(self_write, MSG_LS, true);
+				send_message(self_write, MSG_LS, false);
 				response = wait_message(self_read, DFT_TRIES);
 				info_screen(response[SIGNAL]);
 				break;
 			case SERVER_STATE:
-				send_message(self_write, MSG_STATUS, true);
+				send_message(self_write, MSG_STATUS, false);
 				response = wait_message(self_read, DFT_TRIES);
 				info_screen(response[SIGNAL]);
 				break;
 			case UPLD_FILE:
 				opt = choose_file(file_menu, status->current_dir->file_count);
 				send_message(self_write, MSG_UPLD, true);
-				upload_file(self_write, self_read, status->current_dir->files[opt], 0, NULL);
+				upload_file(self_write, status->current_dir->files[opt], 10, NULL);
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 				break;
