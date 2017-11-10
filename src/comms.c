@@ -1,5 +1,6 @@
 #include "comms.h"
 
+
 /* opens pipe in Write only mode, 
  * this should freeze the program 
  * until message has been read */
@@ -7,10 +8,10 @@ void send_message(const char *pipe_name, char *msg, bool do_unlink) {
 	mkfifo(pipe_name, 0666);
 
 	int fifod = open(pipe_name, O_WRONLY);
-	int pm_size = buffer_size("%s;%d", msg, getpid());
+	int pm_size = buffer_size("%0*d%s", 7, getpid(), msg);
 	char *processed_message = malloc(pm_size);
 
-	snprintf(processed_message, pm_size, "%s;%d", msg, getpid());
+	snprintf(processed_message, pm_size, "%0*d%s", 7, getpid(), msg);
 	write(fifod, processed_message, pm_size);
 	close(fifod);
 
@@ -21,7 +22,6 @@ char **wait_message(const char *pipe_name, int tries) {
 	char *msg_buffer = malloc(1);
 	char byte = 0;
 	char **msg = malloc(sizeof(char*) * MAX_TOKENS);
-	char *token;
 	int count = 0;
 
 	if(msg_buffer == NULL || msg == NULL) {
@@ -48,8 +48,10 @@ char **wait_message(const char *pipe_name, int tries) {
 	}
 
 
-	for(int i = 0; (token = strsep(&msg_buffer, ";")) != NULL && i < MAX_TOKENS; i++)
-		msg[i] = token;
+	msg[SENDER] = malloc(count);
+	msg[SIGNAL] = malloc(count);
+	snprintf(msg[SENDER], 7, "%s", msg_buffer);
+	snprintf(msg[SIGNAL], count - 7, "%s", msg_buffer + 7);
 
 	close(fifod);
 	free(msg_buffer);
