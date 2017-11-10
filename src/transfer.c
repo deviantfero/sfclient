@@ -1,60 +1,81 @@
 #include "transfer.h"
 
-void upload_file(const char *pipe_name, 
-				   const char *read_name,
+int upload_file(const char *pipe_name, 
 				   char *src, 
-				   size_t max_rate, enum method *m) {
+				   int chunksize, enum method *m) {
 
-	if(max_rate == 0) max_rate = MAX_BUFFER;
+	int src_fd;
+	off_t filesize;
+	char fs[MAX_BUFFER];
+	char cs[MAX_BUFFER];
+	/* enum method method_value = PIPES; */
 
-	int src_fd, transfered = 0;
-	off_t file_size;
-	char buffer[max_rate];
-	char chunk_size[MAX_BUFFER];
-	enum method method_value = PIPES;
+	if(chunksize == 0) chunksize = MAX_BUFFER;
 
 	/* method_value will decide which method we use in
 	 * the transfer by using a switch/case, function will
 	 * be split in the future */
-	if(m != NULL) method_value = *m;
+	/* if(m != NULL) method_value = *m; */
 
 	src_fd = open(src, O_RDONLY);
-	file_size = lseek(src_fd, 0, SEEK_END);
+	filesize = lseek(src_fd, 0, SEEK_END);
 	lseek(src_fd, (off_t) 0, SEEK_SET);
-	snprintf(chunk_size, MAX_BUFFER, "%ld", max_rate);
 
-	send_message(pipe_name, chunk_size, true);
+	snprintf(fs, MAX_BUFFER, "%ld", filesize);
+	snprintf(cs, MAX_BUFFER, "%d", chunksize);
+
+	send_message(pipe_name, cs, true);
+	send_message(pipe_name, fs, true);
 	send_message(pipe_name, src, true);
 
-	while(1) {
-		/* cleaning buffer */
-		memset(buffer, 0, max_rate);
-		int err = read(src_fd, buffer, max_rate);
-		if(err == -1) {
-			fprintf(stderr, "Was not able to read this file...\n");
-			break;
-		}
+	return (send_pipe_file(pipe_name, src_fd, chunksize, filesize) == filesize);
+}
 
-		transfered += err;
-		if(err == 0 || transfered > file_size) break;
+int send_pipe_file(const char *pipe_name, int src_fd, int chunksize, size_t filesize) {
+	mkfifo(pipe_name, 0666);
+	int fifod = open(pipe_name, O_WRONLY), transfered = 0, chunk = 0, wchunk = 0;
+	char byte[chunksize + 1];
 
-		/* printf("strlen: %ld\n", strlen(buffer)); */
-		send_message(pipe_name, buffer, true);
-		/* wait for server to receive chunk */
-		wait_message(read_name, DFT_TRIES);
-
-		/* fprintf(stdout, buffer); */
-		fprogress_bar(stdout, file_size, transfered);
+	for(int i = 0; (size_t)transfered < filesize; i++) {
+		if((chunk = read(src_fd, byte, chunksize)) == -1) fprintf(stderr, "error reading a byte");
+		wchunk = write(fifod, byte, chunksize);
+		if(wchunk != -1)
+			transfered += chunk;
+		fprogress_bar(stdout, filesize, transfered);
 	}
 
-	send_message(pipe_name, MSG_DONE, true);
 	close(src_fd);
+	close(fifod);
+	/* unlink(pipe_name); */
+
+	return transfered;
 }
+
+int receive_pipe_file(const char *pipe_name, int piped, int chunksize, size_t filesize) {
+	int fifod = open(pipe_name, O_RDONLY), err;
+	size_t count = 0;
+	char byte[chunksize + 1];
+	memset(byte, 0, chunksize + 1);
+
+	while((err = read(fifod, byte, chunksize)) > 0 && count < filesize) {
+		/* making sure not to insert trash at the end of file */
+		chunksize = ((size_t)(filesize - count) > (size_t)chunksize) ? 
+					(size_t)chunksize : (size_t)(filesize - count);
+
+		if(err != -1 && write(piped, byte, chunksize) != -1) {
+			count += err;
+		}
+		memset(byte, 0, chunksize + 1);
+	}
+	return count;
+}
+
 
 void fprogress_bar(FILE *file, off_t file_size, size_t transfered) {
 	float percentage = ((float)100/file_size) * transfered;
 	struct winsize size;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
+
 	int isize = buffer_size("\r%3.2f%% %d bytes", percentage, transfered);
 	int barsize = size.ws_col - isize;
 
@@ -68,5 +89,4 @@ void fprogress_bar(FILE *file, off_t file_size, size_t transfered) {
 
 	fprintf(file, "\r%3.2f%% %ld bytes [%-*s]", percentage, transfered, barsize - 1, progress_str);
 	fflush(file);
-
 }
