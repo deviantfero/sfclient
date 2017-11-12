@@ -22,7 +22,10 @@ int main(void) {
 	 * in the server, one for reading, one for writing. */
 	char *self_read = malloc(MAX_BUFFER); 
 	char *self_write = malloc(MAX_BUFFER);
-	char **response, *dir_status;
+	char **res, *dir_status;
+	char *server_files;
+	char* tmp_buffer; //multiple uses 
+	int server_file_amount;
 
 	status = malloc(sizeof(struct client_status*));
 
@@ -37,36 +40,66 @@ int main(void) {
 
 	/* shake hands */
 	puts("Waiting for server...");
-	send_message(sfs_path, MSG_ARRIVE, false);
-	response = wait_message(sfs_path, DFT_TRIES);
-	status->server_pid = atoi(response[SENDER]);
-	status->server_dir = response[SIGNAL];
+	send_message(sfs_path, MSG_ARRIVE, true);
+	res = wait_message(sfs_path, DFT_TRIES);
+	status->server_pid = atoi(res[SENDER]);
+	status->server_dir = res[SIGNAL];
 
 	while(opt != EXIT) {
 		system("clear");
 		opt = run_menu(status->opts);
 		switch(opt) {
 			case SERVER_LS:
-				send_message(self_write, MSG_LS, false);
-				response = wait_message(self_read, DFT_TRIES);
-				info_screen(response[SIGNAL]);
+				send_message(self_write, MSG_LS, true);
+				res = wait_message(self_read, DFT_TRIES);
+				info_screen(res[SIGNAL]);
 				break;
 			case SERVER_STATE:
-				send_message(self_write, MSG_STATUS, false);
-				response = wait_message(self_read, DFT_TRIES);
-				info_screen(response[SIGNAL]);
+				send_message(self_write, MSG_STATUS, true);
+				res = wait_message(self_read, DFT_TRIES);
+				info_screen(res[SIGNAL]);
 				break;
 			case UPLD_FILE:
 				opt = choose_file(file_menu, status->current_dir->file_count);
 				send_message(self_write, MSG_UPLD, true);
-				upload_file(self_write, status->current_dir->files[opt], 10, NULL);
+				upload_file(self_write, status->current_dir->files[opt], 0, NULL);
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 				break;
-			case DWNLD_FILE:
-				//download file
+			case DWNLD_FILE: 
+			{ 
+				int total = 0;
+				send_message(self_write, MSG_DOWNLD, true);
+				/* file list in server */
+				res = wait_message(self_read, DFT_TRIES);
+				server_files = res[SIGNAL];
+
+				/* wait file amount in server */
+				res = wait_message(self_read, DFT_TRIES);
+				server_file_amount = atoi(res[SIGNAL]);
+
+				/* send file selection to server */
+				opt = choose_file(server_files, server_file_amount);
+				tmp_buffer = malloc(buffer_size("%d", opt));
+				snprintf(tmp_buffer, buffer_size("%d", opt), "%d", opt);
+				send_message(self_write, tmp_buffer, true);
+				
+				/* receive filename, filesize and chunksize */
+				res = wait_message(self_read, DFT_TRIES);
+				int chunksize = atoi(res[SIGNAL]);
+				res = wait_message(self_read, DFT_TRIES);
+				int filesize = atoi(res[SIGNAL]);
+				res = wait_message(self_read, DFT_TRIES);
+
+				int nfd = open(res[SIGNAL], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+				fprintf(stdout, "downloading %s from (%s)...\n", res[SIGNAL], res[SENDER]);
+				while((total += receive_pipe_file(self_read, nfd, chunksize, filesize)) < filesize);
+				fprintf(stdout, "Press enter to continue...");
+				while(getchar() != 10);
+
+				/* here goes select function for choosing method of receiving */
 				break;
-			case TOGGLE_ENCRYPTION:
+			} case TOGGLE_ENCRYPTION:
 				status->opts->encrypt = !status->opts->encrypt;
 				break;
 			case TOGGLE_COMPRESSION:
