@@ -40,7 +40,7 @@ int main(void) {
 
 	/* shake hands */
 	puts("Waiting for server...");
-	send_message(sfs_path, MSG_ARRIVE, true);
+	send_message(sfs_path, MSG_ARRIVE, false);
 	res = wait_message(sfs_path, DFT_TRIES);
 	status->server_pid = atoi(res[SENDER]);
 	status->server_dir = res[SIGNAL];
