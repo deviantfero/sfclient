@@ -62,7 +62,10 @@ int main(void) {
 			case UPLD_FILE:
 				opt = choose_file(file_menu, status->current_dir->file_count);
 				send_message(self_write, MSG_UPLD, true);
-				upload_file(self_write, status->current_dir->files[opt], 0, NULL);
+				upload_file(self_write, 
+							status->current_dir->files[opt], 
+							status->opts->chunk_size, 
+							(enum method *)&status->opts->method);
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 				break;
@@ -109,8 +112,15 @@ int main(void) {
 				dir_status = sprint_dir_status(status);
 				info_screen(dir_status);
 				break;
-			case NOT_VALID: break;
-			case EXIT: 
+			case SET_MODE:
+			{
+				char mode[2];
+				status->opts->method = method_menu();
+				send_message(self_write, MSG_METHOD, true);
+				snprintf(mode, 2, "%d", status->opts->method);
+				send_message(self_write, mode, true);
+				break;
+			} case EXIT: 
 				send_message(self_write, MSG_EXIT, true);
 				exit(0);
 			default: break;
