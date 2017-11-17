@@ -8,6 +8,7 @@ int upload_file(const char *pipe_name,
 	off_t filesize;
 	char fs[MAX_BUFFER];
 	char cs[MAX_BUFFER];
+	char sn[MAX_BUFFER];
 	/* enum method method_value = PIPES; */
 
 	if(chunksize == 0) chunksize = MAX_BUFFER;
@@ -23,11 +24,17 @@ int upload_file(const char *pipe_name,
 
 	snprintf(fs, MAX_BUFFER, "%ld", filesize);
 	snprintf(cs, MAX_BUFFER, "%d", chunksize);
+	snprintf(sn, MAX_BUFFER, "/tmp/ssfc%d", getpid());
 
 	send_message(pipe_name, cs, true);
 	send_message(pipe_name, fs, true);
 	send_message(pipe_name, src, true);
 
+	switch(*m) {
+		case PIPES: return (send_pipe_file(pipe_name, src_fd, chunksize, filesize) == filesize);
+		case SOCKETS: return (send_sock_file(sn, src_fd, chunksize, filesize) == filesize);
+		default: return filesize;
+	}
 	return (send_pipe_file(pipe_name, src_fd, chunksize, filesize) == filesize);
 }
 
@@ -50,6 +57,55 @@ int send_pipe_file(const char *pipe_name, int src_fd, int chunksize, size_t file
 
 	return transfered;
 }
+
+int send_sock_file(const char *sock_name, int src_fd, int chunksize, size_t filesize) {
+	int csock = make_named_sock(sock_name), ssock;
+	char buffer[chunksize + 1];
+	size_t transfered = 0, chunk = 0, wchunk = 0;
+
+	if(listen(csock, 10) < 0) {
+		fprintf(stderr, "failed to listen %s\n", strerror(errno));
+		return 0;
+	}
+
+	ssock = accept(csock, (struct sockaddr*)NULL, NULL);
+	for(int i = 0; (size_t)transfered < filesize; i++) {
+		if((chunk = read(src_fd, buffer, chunksize)) == -1) fprintf(stderr, "error reading a byte");
+		wchunk = write(ssock, buffer, chunksize);
+		if(wchunk != -1)
+			transfered += chunk;
+		fprogress_bar(stdout, filesize, transfered);
+	}
+	close(ssock);
+
+	return transfered;
+}
+
+int make_named_sock(const char *sock_name){
+	struct sockaddr_un name;
+	int sock;
+	size_t size;
+
+	if((sock = socket(PF_LOCAL, SOCK_STREAM, 0)) < 0) {
+		fprintf(stderr, "socket not created\n");
+		return 0;
+	}
+
+	name.sun_family = AF_LOCAL;
+	strncpy(name.sun_path, sock_name, sizeof(name.sun_path));
+	name.sun_path[sizeof(name.sun_path) - 1] = '\0';
+
+	size = SUN_LEN(&name);
+	size = (offsetof (struct sockaddr_un, sun_path) + strlen(name.sun_path));
+
+	if(bind(sock, (struct sockaddr *)&name, size) < 0) {
+		fprintf(stderr, "socket bind fail\n");
+		return 0;
+	}
+
+	return sock;
+}
+
 
 int receive_pipe_file(const char *pipe_name, int piped, int chunksize, size_t filesize) {
 	int fifod = open(pipe_name, O_RDONLY), err, wchunk;
