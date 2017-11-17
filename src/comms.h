@@ -21,6 +21,7 @@
 #define DFT_TRIES  7
 #define WAIT_TIME  10000
 #define MAX_BUFFER 4096
+#define MSG_METHOD "method"
 #define MSG_LS     "ls"
 #define MSG_STATUS "status"
 #define MSG_UPLD   "upload"
