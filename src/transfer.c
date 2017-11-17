@@ -13,11 +13,6 @@ int upload_file(const char *pipe_name,
 
 	if(chunksize == 0) chunksize = MAX_BUFFER;
 
-	/* method_value will decide which method we use in
-	 * the transfer by using a switch/case, function will
-	 * be split in the future */
-	/* if(m != NULL) method_value = *m; */
-
 	src_fd = open(src, O_RDONLY);
 	filesize = lseek(src_fd, 0, SEEK_END);
 	lseek(src_fd, (off_t) 0, SEEK_SET);
@@ -35,7 +30,6 @@ int upload_file(const char *pipe_name,
 		case SOCKETS: return (send_sock_file(sn, src_fd, chunksize, filesize) == filesize);
 		default: return filesize;
 	}
-	return (send_pipe_file(pipe_name, src_fd, chunksize, filesize) == filesize);
 }
 
 int send_pipe_file(const char *pipe_name, int src_fd, int chunksize, size_t filesize) {
@@ -59,7 +53,7 @@ int send_pipe_file(const char *pipe_name, int src_fd, int chunksize, size_t file
 }
 
 int send_sock_file(const char *sock_name, int src_fd, int chunksize, size_t filesize) {
-	int csock = make_named_sock(sock_name), ssock;
+	int csock = make_named_sock(sock_name, false), ssock;
 	char buffer[chunksize + 1];
 	size_t transfered = 0, chunk = 0, wchunk = 0;
 
@@ -81,7 +75,7 @@ int send_sock_file(const char *sock_name, int src_fd, int chunksize, size_t file
 	return transfered;
 }
 
-int make_named_sock(const char *sock_name){
+int make_named_sock(const char *sock_name, bool recv){
 	struct sockaddr_un name;
 	int sock;
 	size_t size;
@@ -98,8 +92,10 @@ int make_named_sock(const char *sock_name){
 	size = SUN_LEN(&name);
 	size = (offsetof (struct sockaddr_un, sun_path) + strlen(name.sun_path));
 
-	if(bind(sock, (struct sockaddr *)&name, size) < 0) {
-		fprintf(stderr, "socket bind fail\n");
+	int status = recv ? connect(sock, (struct sockaddr *)&name, size) : 
+						bind(sock, (struct sockaddr *)&name, size);
+	if(status < 0) {
+		fprintf(stderr, "socket connect|bind fail: %s\n", strerror(errno));
 		return 0;
 	}
 
@@ -124,6 +120,26 @@ int receive_pipe_file(const char *pipe_name, int piped, int chunksize, size_t fi
 		fprogress_bar(stdout, filesize, count);
 		memset(byte, 0, chunksize + 1);
 	}
+	return count;
+}
+
+int receive_sock_file(const char *sock_name, int dst_fd, int chunksize, size_t filesize) {
+	int csock = make_named_sock(sock_name, true);
+	char buffer[chunksize + 1];
+	int err = 0, wchunk = 0, count = 0;
+
+	while((err = read(csock, buffer, chunksize)) > 0 && (size_t)count < filesize) {
+		/* making sure not to insert trash at the end of file */
+		chunksize = ((size_t)(filesize - count) > (size_t)chunksize) ? 
+					(size_t)chunksize : (size_t)(filesize - count);
+
+		if(err != -1 && (wchunk = write(dst_fd, buffer, chunksize)) != -1) {
+			count += wchunk;
+		}
+		fprogress_bar(stdout, filesize, count);
+		memset(buffer, 0, chunksize + 1);
+	}
+
 	return count;
 }
 
