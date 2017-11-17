@@ -22,6 +22,7 @@ int main(void) {
 	 * in the server, one for reading, one for writing. */
 	char *self_read = malloc(MAX_BUFFER); 
 	char *self_write = malloc(MAX_BUFFER);
+	char *self_socket = malloc(MAX_BUFFER);
 	char **res, *dir_status;
 	char *server_files;
 	char* tmp_buffer; //multiple uses 
@@ -31,6 +32,7 @@ int main(void) {
 
 	snprintf(self_read, MAX_BUFFER, "/tmp/sfc%dr", getpid());
 	snprintf(self_write, MAX_BUFFER, "/tmp/sfc%dw", getpid());
+	snprintf(self_socket, MAX_BUFFER, "/tmp/ssfc%d", getpid());
 
 	status->opts = get_default_opts();
 	status->dir = DEFAULT_DIR;
@@ -96,7 +98,15 @@ int main(void) {
 
 				int nfd = open(res[SIGNAL], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 				fprintf(stdout, "downloading %s from (%s)...\n", res[SIGNAL], res[SENDER]);
-				while((total += receive_pipe_file(self_read, nfd, chunksize, filesize)) < filesize);
+				switch(status->opts->method) {
+					case PIPES: 
+						while((total += receive_pipe_file(self_read, nfd, chunksize, filesize)) < filesize);
+						break;
+					case SOCKETS:
+						while((total += receive_sock_file(self_socket, nfd, chunksize, filesize)) < filesize);
+						break;
+					default: break;
+				}
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 
