@@ -4,15 +4,15 @@
 void print_menu(struct options *copt) {
 	char *encryption_entry = copt->encrypt ? "[on]" : "[off]";
 	char *compression_entry = copt->compress ? "[on]" : "[off]";
-	puts("\t1. See server content");
-	puts("\t2. See server status");
-	puts("\t3. Upload a file");
-	puts("\t4. Download a file");
-	printf("\t5. Encrypt transfer %s\n", encryption_entry);
-	printf("\t6. Compress transfer %s\n", compression_entry);
-	printf("\t7. See client content\n");
-	printf("\t8. Set transfer method [%s]\n", get_method_name(copt->method));
-	puts("\t9. Exit");
+	printf("[1] See server content\n");
+	printf("[2] See server status\n");
+	printf("[3] Upload a file\n");
+	printf("[4] Download a file\n");
+	printf("[5] Encrypt transfer %s\n", encryption_entry);
+	printf("[6] Compress transfer %s\n", compression_entry);
+	printf("[7] See client content\n");
+	printf("[8] Set transfer method [%s]\n", get_method_name(copt->method));
+	printf("[9] Exit\n\n");
 	printf(PROMPT);
 }
 
