@@ -41,7 +41,7 @@ pub fn send_message(pipe_name:&str,msg:&str,do_unlink:bool){
 	    //let processed_message = format!("{}w", unsafe {libc::getpid()}); //Format String why
 	    let processed_message = format!("{:07}{}", unsafe {libc::getpid()},msg); //Format String
 	    println!("{}", processed_message);
-	    let pm_size = processed_message.len();
+	    let pm_size = processed_message.len() + 1; //null terminator for c
 	    let processed_message = CString::new(processed_message).unwrap();
 	    libc::write(fifod ,processed_message.as_ptr() as *const libc::c_void,pm_size);
 	    libc::close(fifod);
@@ -65,18 +65,17 @@ pub fn wait_message(pipe_name:&str,tries:u32) -> [String; 2]{
 	let filename = CString::new(pipe_name).unwrap(); // No as ptr
 	let mut fifod_g = 2;
 	unsafe {
-		println!("Hei1");
+		// println!("Hei1");
 	    libc::mkfifo(filename.as_ptr(), 0o666); // as_ptr moved here
-	    println!("Hei2");
+	    // println!("Hei2");
 	    let fifod = /*libc::*/libc::open(filename.as_ptr(), fcntl::O_RDONLY.bits());
-	    println!("Hei3");
+	    // println!("Hei3");
 	    fifod_g = fifod;
 		let mut err = 0; // read return value
 		err = libc::read(fifod,byte.as_ptr() as *mut libc::c_void,1);
-		println!("Hei4");
-		println!("\tOIEAErr:{} tries: {}", err,tries);
+		// println!("Hei4");
+		// println!("\tOIEAErr:{} tries: {}", err,tries);
 		while err > 0 {
-			println!("\tOIEBErr:{} tries: {}", err,tries);
 			let byte_u8 = CStr::from_ptr(byte.as_ptr()).to_bytes();
 			if byte_u8.len() > 0 { //Check if array is empty
 				let byte_u8 = byte_u8[0];//get first char?
@@ -85,6 +84,7 @@ pub fn wait_message(pipe_name:&str,tries:u32) -> [String; 2]{
 			err = libc::read(fifod,byte.as_ptr() as *mut libc::c_void,1);
 		}
 		if err == -1 && tries > 0 {
+			println!("\tOIEBErr:{} tries: {}", err,tries);
 			libc::usleep(WAIT_TIME);
 			libc::close(fifod);
 			return wait_message(pipe_name, tries - 1);
