@@ -12,6 +12,7 @@
 #include "menu.h"
 #include "status.h"
 #include "transfer.h"
+#include "encrypt.h"
 
 
 struct client_status *status;
@@ -46,6 +47,7 @@ int main(void) {
 	res = wait_message(sfs_path, DFT_TRIES);
 	status->server_pid = atoi(res[SENDER]);
 	status->server_dir = res[SIGNAL];
+	status->opts->chunksize = 0;
 
 	while(opt != EXIT) {
 		system("clear");
@@ -66,14 +68,13 @@ int main(void) {
 				send_message(self_write, MSG_UPLD, true);
 				upload_file(self_write, 
 							status->current_dir->files[opt], 
-							status->opts->chunk_size, 
-							(enum method *)&status->opts->method);
+							status->opts);
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 				break;
 			case DWNLD_FILE: 
 			{ 
-				int total = 0;
+				ssize_t total = 0;
 				send_message(self_write, MSG_DOWNLD, true);
 				/* file list in server */
 				res = wait_message(self_read, DFT_TRIES);
@@ -89,9 +90,7 @@ int main(void) {
 				snprintf(tmp_buffer, buffer_size("%d", opt), "%d", opt);
 				send_message(self_write, tmp_buffer, true);
 				
-				/* receive filename, filesize and chunksize */
-				res = wait_message(self_read, DFT_TRIES);
-				int chunksize = atoi(res[SIGNAL]);
+				/* receive filename, filesize */
 				res = wait_message(self_read, DFT_TRIES);
 				int filesize = atoi(res[SIGNAL]);
 				res = wait_message(self_read, DFT_TRIES);
@@ -100,10 +99,10 @@ int main(void) {
 				fprintf(stdout, "downloading %s from (%s)...\n", res[SIGNAL], res[SENDER]);
 				switch(status->opts->method) {
 					case PIPES: 
-						while((total += receive_pipe_file(self_read, nfd, chunksize, filesize)) < filesize);
+						while((total += receive_pipe_file(self_read, nfd, status->opts, filesize)) < filesize);
 						break;
 					case SOCKETS:
-						while((total += receive_sock_file(self_socket, nfd, chunksize, filesize)) < filesize);
+						while((total += receive_sock_file(self_socket, nfd, status->opts, filesize)) < filesize);
 						break;
 					default: break;
 				}
@@ -114,6 +113,7 @@ int main(void) {
 				break;
 			} case TOGGLE_ENCRYPTION:
 				status->opts->encrypt = !status->opts->encrypt;
+				send_message(self_write, MSG_ENCRYPT, true);
 				break;
 			case TOGGLE_COMPRESSION:
 				status->opts->compress = !status->opts->compress;
@@ -129,6 +129,20 @@ int main(void) {
 				send_message(self_write, MSG_METHOD, true);
 				snprintf(mode, 2, "%d", status->opts->method);
 				send_message(self_write, mode, true);
+				break;
+			} 
+			case CHANGE_CHUNKSIZE:
+			{
+				char strsize[MAX_BUFFER];
+				do {
+					fprintf(stdout, "\nEnter a new chunksize: ");
+					status->opts->chunksize = atoi(fgets(strsize, MAX_BUFFER, stdin));
+				}while(status->opts->chunksize < 0 || status->opts->chunksize > INT_MAX);
+				int size = buffer_size("%d", status->opts->chunksize);
+				char *str_chunksize = malloc(size);
+				snprintf(str_chunksize, size, "%d", status->opts->chunksize);
+				send_message(self_write, MSG_CHUNKSIZE, true);
+				send_message(self_write, str_chunksize, true);
 				break;
 			} case EXIT: 
 				send_message(self_write, MSG_EXIT, true);
