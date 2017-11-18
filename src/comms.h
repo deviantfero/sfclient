@@ -21,16 +21,18 @@
 #define DFT_TRIES  7
 #define WAIT_TIME  10000
 #define MAX_BUFFER 4096
-#define MSG_METHOD "method"
-#define MSG_LS     "ls"
-#define MSG_STATUS "status"
-#define MSG_UPLD   "upload"
-#define MSG_DONE   "done"
-#define MSG_UPLD_E "eupload"
-#define MSG_UPLD_C "cupload"
-#define MSG_DOWNLD "download"
-#define MSG_EXIT   "bye"
-#define MSG_ARRIVE "hello"
+#define MSG_CHUNKSIZE "chunksize"
+#define MSG_ENCRYPT   "encrypt"
+#define MSG_METHOD    "method"
+#define MSG_LS        "ls"
+#define MSG_STATUS    "status"
+#define MSG_UPLD      "upload"
+#define MSG_DONE      "done"
+#define MSG_UPLD_E    "eupload"
+#define MSG_UPLD_C    "cupload"
+#define MSG_DOWNLD    "download"
+#define MSG_EXIT      "bye"
+#define MSG_ARRIVE    "hello"
 
 /* messages should follow format "what;pid" */
 void send_message(const char *pipe_name, char *msg, bool do_unlink);
