@@ -1,44 +1,42 @@
 #include "transfer.h"
 
-int upload_file(const char *pipe_name, 
-				   char *src, 
-				   int chunksize, enum method *m) {
+int upload_file(const char *pipe_name, char *src, struct options *opt) {
 
 	int src_fd;
 	off_t filesize;
 	char fs[MAX_BUFFER];
-	char cs[MAX_BUFFER];
 	char sn[MAX_BUFFER];
 	/* enum method method_value = PIPES; */
-
-	if(chunksize == 0) chunksize = MAX_BUFFER;
 
 	src_fd = open(src, O_RDONLY);
 	filesize = lseek(src_fd, 0, SEEK_END);
 	lseek(src_fd, (off_t) 0, SEEK_SET);
 
 	snprintf(fs, MAX_BUFFER, "%ld", filesize);
-	snprintf(cs, MAX_BUFFER, "%d", chunksize);
 	snprintf(sn, MAX_BUFFER, "/tmp/ssfc%d", getpid());
 
-	send_message(pipe_name, cs, true);
 	send_message(pipe_name, fs, true);
 	send_message(pipe_name, src, true);
 
-	switch(*m) {
-		case PIPES: return (send_pipe_file(pipe_name, src_fd, chunksize, filesize) == filesize);
-		case SOCKETS: return (send_sock_file(sn, src_fd, chunksize, filesize) == filesize);
+	switch(opt->method) {
+		case PIPES: return (send_pipe_file(pipe_name, src_fd, opt, filesize) == filesize);
+		case SOCKETS: return (send_sock_file(sn, src_fd, opt, filesize) == filesize);
 		default: return filesize;
 	}
 }
 
-int send_pipe_file(const char *pipe_name, int src_fd, int chunksize, size_t filesize) {
+ssize_t send_pipe_file(const char *pipe_name, int src_fd, struct options *opt, size_t filesize) {
 	mkfifo(pipe_name, 0666);
-	int fifod = open(pipe_name, O_WRONLY), transfered = 0, chunk = 0, wchunk = 0;
+	int chunksize = opt->chunksize == 0 ? MAX_BUFFER : opt->chunksize;
+	int fifod = open(pipe_name, O_WRONLY);
+	ssize_t transfered = 0, chunk = 0, wchunk = 0;
 	char byte[chunksize + 1];
 
 	for(int i = 0; (size_t)transfered < filesize; i++) {
 		if((chunk = read(src_fd, byte, chunksize)) == -1) fprintf(stderr, "error reading a byte");
+
+		if(opt->encrypt) encrypt(byte, KEY);
+
 		wchunk = write(fifod, byte, chunksize);
 		if(wchunk != -1)
 			transfered += chunk;
@@ -52,10 +50,11 @@ int send_pipe_file(const char *pipe_name, int src_fd, int chunksize, size_t file
 	return transfered;
 }
 
-int send_sock_file(const char *sock_name, int src_fd, int chunksize, size_t filesize) {
+ssize_t send_sock_file(const char *sock_name, int src_fd, struct options *opt, size_t filesize) {
+	int chunksize = opt->chunksize == 0 ? MAX_BUFFER : opt->chunksize;
 	int csock = make_named_sock(sock_name, false), ssock;
 	char buffer[chunksize + 1];
-	size_t transfered = 0, chunk = 0, wchunk = 0;
+	ssize_t transfered = 0, chunk = 0, wchunk = 0;
 
 	if(listen(csock, 10) < 0) {
 		fprintf(stderr, "failed to listen %s\n", strerror(errno));
@@ -64,7 +63,10 @@ int send_sock_file(const char *sock_name, int src_fd, int chunksize, size_t file
 
 	ssock = accept(csock, (struct sockaddr*)NULL, NULL);
 	for(int i = 0; (size_t)transfered < filesize; i++) {
-		if((chunk = read(src_fd, buffer, chunksize)) == -1) fprintf(stderr, "error reading a byte");
+		if((ssize_t)(chunk = read(src_fd, buffer, chunksize)) == -1) fprintf(stderr, "error reading a byte");
+
+		if(opt->encrypt) encrypt(buffer, KEY);
+
 		wchunk = write(ssock, buffer, chunksize);
 		if(wchunk != -1)
 			transfered += chunk;
@@ -103,16 +105,19 @@ int make_named_sock(const char *sock_name, bool recv){
 }
 
 
-int receive_pipe_file(const char *pipe_name, int piped, int chunksize, size_t filesize) {
-	int fifod = open(pipe_name, O_RDONLY), err, wchunk;
-	size_t count = 0;
+ssize_t receive_pipe_file(const char *pipe_name, int piped, struct options *opt, size_t filesize) {
+	int chunksize = opt->chunksize == 0 ? MAX_BUFFER : opt->chunksize;
+	int fifod = open(pipe_name, O_RDONLY); 
+	ssize_t count = 0, err, wchunk;
 	char byte[chunksize + 1];
 	memset(byte, 0, chunksize + 1);
 
-	while((err = read(fifod, byte, chunksize)) > 0 && count < filesize) {
+	while((err = read(fifod, byte, chunksize)) > 0 && (size_t)count < filesize) {
 		/* making sure not to insert trash at the end of file */
 		chunksize = ((size_t)(filesize - count) > (size_t)chunksize) ? 
 					(size_t)chunksize : (size_t)(filesize - count);
+
+		if(opt->encrypt) encrypt(byte, KEY);
 
 		if(err != -1 && (wchunk = write(piped, byte, chunksize)) != -1) {
 			count += wchunk;
@@ -123,15 +128,18 @@ int receive_pipe_file(const char *pipe_name, int piped, int chunksize, size_t fi
 	return count;
 }
 
-int receive_sock_file(const char *sock_name, int dst_fd, int chunksize, size_t filesize) {
+ssize_t receive_sock_file(const char *sock_name, int dst_fd, struct options *opt, size_t filesize) {
+	int chunksize = opt->chunksize == 0 ? MAX_BUFFER : opt->chunksize;
 	int csock = make_named_sock(sock_name, true);
 	char buffer[chunksize + 1];
-	int err = 0, wchunk = 0, count = 0;
+	ssize_t err = 0, wchunk = 0, count = 0;
 
 	while((err = read(csock, buffer, chunksize)) > 0 && (size_t)count < filesize) {
 		/* making sure not to insert trash at the end of file */
 		chunksize = ((size_t)(filesize - count) > (size_t)chunksize) ? 
 					(size_t)chunksize : (size_t)(filesize - count);
+
+		if(opt->encrypt) encrypt(buffer, KEY);
 
 		if(err != -1 && (wchunk = write(dst_fd, buffer, chunksize)) != -1) {
 			count += wchunk;
@@ -139,6 +147,9 @@ int receive_sock_file(const char *sock_name, int dst_fd, int chunksize, size_t f
 		fprogress_bar(stdout, filesize, count);
 		memset(buffer, 0, chunksize + 1);
 	}
+
+	close(csock);
+	unlink(sock_name);
 
 	return count;
 }
