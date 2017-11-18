@@ -1,6 +1,5 @@
 #ifndef MENU_H
 
-#define BUFFER_MAX 100
 #define PROMPT "Enter a number: "
 
 #include <string.h>
@@ -20,13 +19,14 @@ enum menu_opt {
 	TOGGLE_COMPRESSION,
 	CLIENT_LS,
 	SET_MODE,
+	CHANGE_CHUNKSIZE,
 	EXIT
 };
 
 struct options {
 	bool encrypt;
 	bool compress;
-	int chunk_size;
+	int chunksize;
 	int method;
 };
 
