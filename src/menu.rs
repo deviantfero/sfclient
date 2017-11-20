@@ -8,7 +8,7 @@ use std::io::Write;// <--- bring flush() into scope
 //use self::core::num::FromStrRadixHelper;
 
 const BUFFER_MAX:i32= 100;
-const PROMPT: &'static str = "Enter a number: ";
+pub const PROMPT: &'static str = "Enter a number: ";
 
 //#[derive(Debug)]
 #[derive(PartialEq, Eq)]
@@ -41,9 +41,10 @@ impl MenuOpt{
 	}
 }
 
-struct Options {
+pub struct options {
 	encrypt:bool,
 	compress:bool,
+	pub chunksize:i32,
 	method:i32,
 }
 //------------------Body------------------
@@ -90,6 +91,38 @@ pub fn run_menu() -> MenuOpt{
 	//println!("{}", MenuOpt::NotValid as i32);
 }
 
+pub fn choose_file(dir_status:&str, file_count:i32){
+	let mut tmp = String::new();
+	let mut opt= MenuOpt::NotValid;
+	while{
+		println!("{}\nInput a file number:", dir_status);
+		io::stdin().read_line(&mut tmp)
+            .expect("Failed to read line");
+     	let read_option_int: u32 = match tmp.trim().parse() {
+            Ok(num) => {num},
+            Err(_) => {
+            	println!("Error, ingrese numeros");
+            	MenuOpt::NotValid as u32
+            	//break; /*continue*/	
+            },//continue will keep reading same value? Maybe let should be mut?
+        };
+        opt = MenuOpt::from_u32(read_option_int);
+        if opt == MenuOpt::NotValid {
+        	println!("{}", "Enter a valid option...");
+        }
+        opt == MenuOpt::NotValid
+	} {}// im a do- while
+}
+
 pub fn info_screen(info:&str){
 	println!("{}", info);
+}
+
+pub fn get_default_opts() -> options{
+	return options{
+		encrypt:false,
+		compress:false,
+		method:0,
+		chunksize:0,
+	}
 }

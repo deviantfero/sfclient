@@ -12,10 +12,8 @@ use std::ptr;
 //pub use self::FcntlArg::*;
 use std::fs;
 
-
-
-pub const SIGNAL:u32= 0;
-pub const SENDER:u32= 1;
+pub const SIGNAL:usize= 0;
+pub const SENDER:usize= 1;
 pub const MAX_TOKENS:u32= 10;
 pub const DFT_TRIES:u32= 7;
 pub const WAIT_TIME:u32= 10000;
@@ -36,15 +34,15 @@ pub fn send_message(pipe_name:&str,msg:&str,do_unlink:bool){
 	let pipe_nameOri = pipe_name;
 	let pipe_name = CString::new(pipe_name).unwrap(); // No as ptr - Reusing varname Warning
 	unsafe {
-	    libc::mkfifo(pipe_name.as_ptr(), 0o666); // as_ptr moved here
-	    let fifod = /*libc::*/libc::open(pipe_name.as_ptr(), fcntl::O_WRONLY.bits());
-	    //let processed_message = format!("{}w", unsafe {libc::getpid()}); //Format String why
-	    let processed_message = format!("{:07}{}", unsafe {libc::getpid()},msg); //Format String
-	    println!("{}", processed_message);
-	    let pm_size = processed_message.len() + 1; //null terminator for c
-	    let processed_message = CString::new(processed_message).unwrap();
-	    libc::write(fifod ,processed_message.as_ptr() as *const libc::c_void,pm_size);
-	    libc::close(fifod);
+		libc::mkfifo(pipe_name.as_ptr(), 0o666); // as_ptr moved here
+		let fifod = /*libc::*/libc::open(pipe_name.as_ptr(), fcntl::O_WRONLY.bits());
+		//let processed_message = format!("{}w", unsafe {libc::getpid()}); //Format String why
+		let processed_message = format!("{:07}{}", unsafe {libc::getpid()},msg); //Format String
+		println!("Sended Command: {}", processed_message);
+		let pm_size = processed_message.len() + 1; //null terminator for c
+		let processed_message = CString::new(processed_message).unwrap();
+		libc::write(fifod ,processed_message.as_ptr() as *const libc::c_void,pm_size);
+		libc::close(fifod);
 	}
 	if do_unlink {
 		unsafe {
@@ -89,15 +87,15 @@ pub fn wait_message(pipe_name:&str,tries:u32) -> [String; 2]{
 			libc::close(fifod);
 			return wait_message(pipe_name, tries - 1);
 		} else if(tries == 0){
-			msg[0] = "TIME_OUT".to_string();
-			msg[1] = "0".to_string();
+			msg[SIGNAL] = "TIME_OUT".to_string();
+			msg[SENDER] = "0".to_string();
 			libc::close(fifod);
 			return msg;
 		}
 	}
 	//let msg = String::new();
-	msg[0] = format!("{}", msg_buffer); //Format String
-	msg[1] = format!("{}", msg_buffer); //Format String
+	msg[SIGNAL] = format!("{}", msg_buffer); //Format String
+	msg[SENDER] = format!("{}", msg_buffer); //Format String
 	unsafe{
 		libc::close(fifod_g);
 	}
