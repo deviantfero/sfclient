@@ -24,6 +24,7 @@ int main(void) {
 	char *self_read = malloc(MAX_BUFFER); 
 	char *self_write = malloc(MAX_BUFFER);
 	char *self_socket = malloc(MAX_BUFFER);
+	char *self_queue = malloc(MAX_BUFFER);
 	char **res, *dir_status;
 	char *server_files;
 	char* tmp_buffer; //multiple uses 
@@ -34,6 +35,7 @@ int main(void) {
 	snprintf(self_read, MAX_BUFFER, "/tmp/sfc%dr", getpid());
 	snprintf(self_write, MAX_BUFFER, "/tmp/sfc%dw", getpid());
 	snprintf(self_socket, MAX_BUFFER, "/tmp/ssfc%d", getpid());
+	snprintf(self_queue, MAX_BUFFER, "/qsfc%d", getpid());
 
 	status->opts = get_default_opts();
 	status->dir = DEFAULT_DIR;
@@ -103,9 +105,12 @@ int main(void) {
 						break;
 					case SOCKETS:
 						while((total += receive_sock_file(self_socket, nfd, status->opts, filesize)) < filesize);
+					case QUEUE:
+						while((total += receive_queue_file(self_queue, nfd, status->opts, filesize)) < filesize);
 						break;
 					default: break;
 				}
+				status->current_dir = get_dir_contents(status->dir);
 				fprintf(stdout, "Press enter to continue...");
 				while(getchar() != 10);
 
@@ -137,7 +142,7 @@ int main(void) {
 				do {
 					fprintf(stdout, "\nEnter a new chunksize: ");
 					status->opts->chunksize = atoi(fgets(strsize, MAX_BUFFER, stdin));
-				}while(status->opts->chunksize < 0 || status->opts->chunksize > INT_MAX);
+				}while(status->opts->chunksize < 0 || status->opts->chunksize > 4000000);
 				int size = buffer_size("%d", status->opts->chunksize);
 				char *str_chunksize = malloc(size);
 				snprintf(str_chunksize, size, "%d", status->opts->chunksize);
