@@ -18,7 +18,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include "comms.h"
-#include "encrypt.h"
 #include "utils.h"
 #include "menu.h"
 
