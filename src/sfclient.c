@@ -12,7 +12,6 @@
 #include "menu.h"
 #include "status.h"
 #include "transfer.h"
-#include "encrypt.h"
 
 
 struct client_status *status;
