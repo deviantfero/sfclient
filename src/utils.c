@@ -15,55 +15,57 @@ int buffer_size(const char* format, ...) {
  * https://stackoverflow.com/questions/8072868/simple-xor-algorithm
  */
 
-void encrypt(char *message, char * key, ssize_t chunksize) {
+void encrypt(char *chunk, char * key, ssize_t chunksize) {
     ssize_t keylen = buffer_size("%s", key);
     for(ssize_t i = 0; i < chunksize; i++) {
-        message[i] = message[i] ^ key[i % keylen];
+        chunk[i] = chunk[i] ^ key[i % keylen];
     }
 }
 
-char *chunk_deflate(char *str) {
-    size_t strsize = buffer_size("%s", str) + 2;
-    char *deflated = malloc(strsize);
-    memset(deflated, 0, strsize);
-    z_stream defstream;
-    memset(&defstream, 0, sizeof(defstream));
-    defstream.zalloc = Z_NULL;
-    defstream.zfree  = Z_NULL;
-    defstream.opaque = Z_NULL;
-    defstream.avail_in = (uInt)strsize;
-    defstream.next_in  = (Bytef *)str;
-    defstream.avail_out = (uInt)strsize;
-    defstream.next_out = (Bytef *)deflated;
+char* deflate_file(char *src) {
+	int src_fd = open(src, O_RDONLY);
+	ssize_t filesize = lseek(src_fd, 0, SEEK_END);
+	lseek(src_fd, (off_t) 0, SEEK_SET);
+    ssize_t gznamesize = buffer_size("%s.gz", src);
+    char *gzsrc  = malloc(gznamesize);
+    snprintf(gzsrc, gznamesize, "%s.gz", src);
 
-    deflateInit(&defstream, Z_DEFAULT_COMPRESSION);
-    deflate(&defstream, Z_FINISH);
-    deflateEnd(&defstream);
+    char *file = malloc(filesize + 1);
+    struct gzFile_s *fi = (struct gzFile_s *)gzopen(gzsrc, "wb");
+    read(src_fd, file, filesize);
 
-    return deflated;
+    gzwrite(fi, file, filesize);
+    gzclose(fi);
+
+    free(file);
+    return gzsrc;
 }
 
-char *chunk_inflate(char *str) {
-    size_t strsize = buffer_size("%s", str) + 2;
-    char *inflated = malloc(strsize);
-    int ret;
-    memset(inflated, 0, strsize);
+ssize_t inflate_file(char *src, bool del) {
+    int usrcsize = buffer_size("%s", src) - 4;
+    char buffer[MAX_BUFFER];
 
-    z_stream defstream;
-    memset(&defstream, 0, sizeof(defstream));
-    defstream.zalloc = Z_NULL;
-    defstream.zfree  = Z_NULL;
-    defstream.opaque = Z_NULL;
-    defstream.avail_in = (uInt)strsize;
-    defstream.next_in  = (Bytef *)str;
+    char *usrc = malloc(usrcsize);
+    memset(usrc, 0, usrcsize);
 
-    if(inflateInit(&defstream) != Z_OK) return NULL;
-    do {
-        defstream.avail_out = (uInt)strsize;
-        defstream.next_out = (Bytef *)inflated;
-        ret = inflate(&defstream, Z_NO_FLUSH);
-    }while(ret == Z_OK);
+    strncpy(usrc, src, usrcsize);
+    usrc[usrcsize] = '\0';
 
-    inflateEnd(&defstream);
-    return inflated;
+    struct gzFile_s *fi = (struct gzFile_s *)gzopen(src, "rb");
+    gzrewind(fi);
+
+
+    int fd  = open(usrc, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    int len = 0; 
+    ssize_t total = 0;
+    while(!gzeof(fi)) {
+        len = gzread(fi, buffer, sizeof(buffer));
+        total += len;
+        write(fd, buffer, len);
+    }
+
+    gzclose(fi);
+    close(fd);
+    if(del) unlink(src);
+    return total;
 }

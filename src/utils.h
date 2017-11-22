@@ -10,10 +10,11 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <zlib.h>
+#include "transfer.h"
 
 int buffer_size(const char* format, ...);
 void encrypt(char *message, char *key, ssize_t chunksize);
-char *chunk_deflate(char *str);
-char *chunk_inflate(char *str);
+ssize_t inflate_file(char *src, bool del);
+char *deflate_file(char *src);
 
 #endif
