@@ -70,7 +70,8 @@ int main(void) {
 				upload_file(self_write, 
 							status->current_dir->files[opt], 
 							status->opts);
-				fprintf(stdout, "Press enter to continue...");
+				fflush(stdout);
+				fprintf(stdout, "\nPress enter to continue...");
 				while(getchar() != 10);
 				break;
 			case DWNLD_FILE: 
@@ -110,7 +111,11 @@ int main(void) {
 					default: break;
 				}
 				status->current_dir = get_dir_contents(status->dir);
-				fprintf(stdout, "Press enter to continue...");
+
+				/* decompress file */
+				if(status->opts->compress) inflate_file(res[SIGNAL], true);
+
+				fprintf(stdout, "\nPress enter to continue...");
 				while(getchar() != 10);
 
 				/* here goes select function for choosing method of receiving */

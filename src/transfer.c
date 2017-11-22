@@ -2,12 +2,15 @@
 
 ssize_t upload_file(const char *pipe_name, char *src, struct options *opt) {
 
+	int status;
 	int src_fd;
 	off_t filesize;
 	char fs[MAX_BUFFER];
 	char sn[MAX_BUFFER];
 	char qn[MAX_BUFFER];
 	/* enum method method_value = PIPES; */
+
+	if(opt->compress) src = deflate_file(src);
 
 	src_fd = open(src, O_RDONLY);
 	filesize = lseek(src_fd, 0, SEEK_END);
@@ -21,11 +24,21 @@ ssize_t upload_file(const char *pipe_name, char *src, struct options *opt) {
 	send_message(pipe_name, src, true);
 
 	switch(opt->method) {
-		case PIPES: return (send_pipe_file(pipe_name, src_fd, opt, filesize) == filesize);
-		case SOCKETS: return (send_sock_file(sn, src_fd, opt, filesize) == filesize);
-		case QUEUE: return (send_queue_file(qn, src_fd, opt, filesize) == filesize);
-		default: return filesize;
+		case PIPES: 
+			status = send_pipe_file(pipe_name, src_fd, opt, filesize) == filesize;
+			break;
+		case SOCKETS: 
+			status = send_sock_file(sn, src_fd, opt, filesize) == filesize;
+			break;
+		case QUEUE: 
+			status = send_queue_file(qn, src_fd, opt, filesize) == filesize;
+			break;
+		default: return 0;
 	}
+	
+	/* delete the .gz if compress mode on */
+	if(opt->compress) unlink(src);
+	return status;
 }
 
 ssize_t send_pipe_file(const char *pipe_name, int src_fd, struct options *opt, size_t filesize) {
@@ -39,7 +52,6 @@ ssize_t send_pipe_file(const char *pipe_name, int src_fd, struct options *opt, s
 		if((chunk = read(src_fd, byte, chunksize)) == -1) fprintf(stderr, "error reading a byte");
 
 		if(opt->encrypt)  encrypt(byte, KEY, chunk);
-		/* if(opt->compress) byte = chunk_deflate(byte); */
 
 		wchunk = write(fifod, byte, chunksize);
 		if(wchunk != -1)
@@ -152,6 +164,7 @@ ssize_t receive_pipe_file(const char *pipe_name, int piped, struct options *opt,
 		chunksize = ((size_t)(filesize - count) > (size_t)chunksize) ? 
 					(size_t)chunksize : (size_t)(filesize - count);
 
+		/* if(opt->compress) chunk_inflate(buffer, chunksize + 4); */
 		if(opt->encrypt)  encrypt(buffer, KEY, err);
 
 		if(err != -1 && (wchunk = write(piped, buffer, chunksize)) != -1) {
@@ -223,11 +236,12 @@ ssize_t receive_queue_file(const char *queue, int dst_fd, struct options *opt, s
 
 
 void fprogress_bar(FILE *file, off_t file_size, size_t transfered) {
+	fflush(file);
 	float percentage = ((float)100/file_size) * transfered;
 	struct winsize size;
 	ioctl(STDOUT_FILENO, TIOCGWINSZ, &size);
 
-	int isize = buffer_size("\r%3.2f%% %d bytes", percentage, transfered);
+	int isize = buffer_size("\r%3.2f%% %d bytes   ", percentage, transfered);
 	int barsize = size.ws_col - isize;
 
 	char *progress_str = malloc(size.ws_col - isize);
