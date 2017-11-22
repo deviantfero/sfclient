@@ -110,10 +110,11 @@ int main(void) {
 						break;
 					default: break;
 				}
-				status->current_dir = get_dir_contents(status->dir);
 
 				/* decompress file */
 				if(status->opts->compress) inflate_file(res[SIGNAL], true);
+
+				status->current_dir = get_dir_contents(status->dir);
 
 				fprintf(stdout, "\nPress enter to continue...");
 				while(getchar() != 10);
@@ -126,6 +127,7 @@ int main(void) {
 				break;
 			case TOGGLE_COMPRESSION:
 				status->opts->compress = !status->opts->compress;
+				send_message(self_write, MSG_COMPRESS, true);
 				break;
 			case CLIENT_LS:
 				dir_status = sprint_dir_status(status);

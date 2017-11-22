@@ -23,6 +23,7 @@
 #define MAX_BUFFER 4096
 #define MSG_CHUNKSIZE "chunksize"
 #define MSG_ENCRYPT   "encrypt"
+#define MSG_COMPRESS  "compress"
 #define MSG_METHOD    "method"
 #define MSG_LS        "ls"
 #define MSG_STATUS    "status"
