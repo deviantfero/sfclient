@@ -45,7 +45,13 @@ pub struct options {
 	encrypt:bool,
 	compress:bool,
 	pub chunksize:i32,
-	method:i32,
+	pub method:i32,
+}
+
+pub enum method {
+	PIPES,
+	QUEUE,
+	SOCKETS,
 }
 //------------------Body------------------
 pub fn print_menu() {

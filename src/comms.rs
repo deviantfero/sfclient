@@ -17,7 +17,7 @@ pub const SENDER:usize= 1;
 pub const MAX_TOKENS:u32= 10;
 pub const DFT_TRIES:u32= 7;
 pub const WAIT_TIME:u32= 10000;
-pub const MAX_BUFFER:u32= 4096;
+pub const MAX_BUFFER:i32= 4096;
 pub const MSG_LS: &'static str = "ls";
 pub const MSG_STATUS: &'static str = "status";
 pub const MSG_UPLD: &'static str = "upload";
@@ -60,13 +60,14 @@ pub fn wait_message(pipe_name:&str,tries:u32) -> [String; 2]{
 	let mut msg: [String; 2] = Default::default();//["a".to_string(); 2];
 	//let mut msg: Vec<String> = vec![String::new(); 2];
 	let mut msg_buffer = String::new();
-	let filename = CString::new(pipe_name).unwrap(); // No as ptr
+	let pipe_nameOri = pipe_name;
+	let pipe_name = CString::new(pipe_name).unwrap(); // No as ptr
 	let mut fifod_g = 2;
 	unsafe {
 		// println!("Hei1");
-	    libc::mkfifo(filename.as_ptr(), 0o666); // as_ptr moved here
+	    libc::mkfifo(pipe_name.as_ptr(), 0o666); // as_ptr moved here
 	    // println!("Hei2");
-	    let fifod = /*libc::*/libc::open(filename.as_ptr(), fcntl::O_RDONLY.bits());
+	    let fifod = /*libc::*/libc::open(pipe_name.as_ptr(), fcntl::O_RDONLY.bits());
 	    // println!("Hei3");
 	    fifod_g = fifod;
 		let mut err = 0; // read return value
@@ -85,7 +86,7 @@ pub fn wait_message(pipe_name:&str,tries:u32) -> [String; 2]{
 			println!("\tOIEBErr:{} tries: {}", err,tries);
 			libc::usleep(WAIT_TIME);
 			libc::close(fifod);
-			return wait_message(pipe_name, tries - 1);
+			return wait_message(pipe_nameOri, tries - 1);
 		} else if(tries == 0){
 			msg[SIGNAL] = "TIME_OUT".to_string();
 			msg[SENDER] = "0".to_string();

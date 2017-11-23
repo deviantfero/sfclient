@@ -2,6 +2,8 @@
 //extern crate syscall;
 //extern crate libc;
 extern crate nix;
+extern crate pbr;
+
 use nix::libc;
 use nix::sys::signal;
 use std::io;
@@ -13,6 +15,7 @@ use std::process::Command;
 mod menu;
 mod comms;
 mod status;
+mod transfer;
 
 const sfs_path: &'static str = "/tmp/sfs";
 
@@ -80,6 +83,13 @@ fn main() {
 				comms::send_message(&self_write,comms::MSG_STATUS,true);
 				let res = comms::wait_message(&self_read,comms::DFT_TRIES);
 				menu::info_screen(&res[comms::SIGNAL]);
+			},
+			menu::MenuOpt::UpldFile => {
+				comms::send_message(&self_write,comms::MSG_UPLD,true);
+				transfer::upload_file(&self_write,&status.current_dir.files[3],&status.opts);
+				println!("Press enter to continue...");
+				//let res = comms::wait_message(&self_read,comms::DFT_TRIES);
+				//menu::info_screen(&res[comms::SIGNAL]);
 			},
 			menu::MenuOpt::ClientLs => {
 				let dir_status = status::sprint_dir_status(&status);
