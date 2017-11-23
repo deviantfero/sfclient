@@ -19,7 +19,7 @@ mod menu;
 mod comms;
 mod status;
 mod transfer;
-
+mod queues;
 use menu::MenuOpt;
 
 const sfs_path: &'static str = "/tmp/sfs";
@@ -95,10 +95,11 @@ fn main() {
 				menu::info_screen(&res[comms::SIGNAL]);
 			},
 			menu::MenuOpt::UpldFile => {
-				opt = menu::choose_file(&file_menu,status.current_dir.file_count);
-				println!("{}",opt.clone() as u32);
+				let indexFile = menu::choose_file(&file_menu,status.current_dir.file_count);
+				println!("{}",indexFile as u32);
 				comms::send_message(&self_write,comms::MSG_UPLD,true);
-				transfer::upload_file(&self_write,&status.current_dir.files[opt.clone() as usize],&status.opts);
+				let indexOpt = indexFile;
+				transfer::upload_file(&self_write,&status.current_dir.files[indexOpt as usize],&status.opts);
 				io::stdout().flush();
 				println!("Press enter to continue...");
 				//let res = comms::wait_message(&self_read,comms::DFT_TRIES);
@@ -125,14 +126,14 @@ fn main() {
 		        };
 				/* send file selection to server */
 				println!("Server PID:{}", res[comms::SENDER]);
-				opt = menu::choose_file(&server_files,server_file_amount);
-				println!("{}", opt.clone() as u32);
-				comms::send_message(&self_write,&format!("{}",opt.clone() as u32),true);
+				let  indexFile = menu::choose_file(&server_files,server_file_amount)-1;
+				println!("{}", indexFile.clone() as u32);
+				comms::send_message(&self_write,&format!("{}",indexFile.clone() as u32),true);
 				
 				/* receive filename, filesize */
 				res = comms::wait_message(&self_read,comms::DFT_TRIES);
 				
-				let filesize: i32 = match res[comms::SIGNAL].trim().parse() {
+				let filesize: u64 = match res[comms::SIGNAL].trim().parse() {
 		            Ok(num) => {num},
 		            Err(_) => {
 		            	println!("Error, ingrese numeros");
@@ -145,7 +146,12 @@ fn main() {
 				let nfd = unsafe{libc::open(ressignal.as_ptr(), fcntl::O_WRONLY.bits() | fcntl::O_CREAT.bits() | fcntl::O_TRUNC.bits(),0o644)};// Open File
 				//int nfd = open(res[comms::SIGNAL], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 				println!("downloading {} from ({})...", res[comms::SIGNAL], res[comms::SENDER]);
-				transfer::receive_pipe_file(&self_read, nfd, &status.opts, filesize);
+				let self_queue = format!("/qsfc{}", unsafe{libc::getpid()});
+				match status.opts.method {
+					menu::method::PIPES=> transfer::receive_pipe_file(&self_read, nfd, &status.opts, filesize as i32),
+					menu::method::QUEUE=> transfer::receive_queue_file(&self_queue, nfd, &status.opts, filesize),
+					_ => println!("error"),
+				}
 				/*switch(status->opts->method) {
 					case PIPES: 
 						while((total += receive_pipe_file(self_read, nfd, status->opts, filesize)) < filesize);

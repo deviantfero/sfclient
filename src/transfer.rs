@@ -1,5 +1,12 @@
 use menu;
 use comms;
+use nix::mqueue;
+use nix::mqueue::{mq_open, mq_close, mq_send, mq_receive, mq_getattr, mq_setattr, mq_unlink, mq_set_nonblock, mq_remove_nonblock};
+use nix::mqueue::{O_CREAT, O_WRONLY, O_RDONLY, O_NONBLOCK};
+
+
+use nix::mqueue::MqAttr;
+use nix::sys::stat::{S_IWUSR, S_IRUSR, S_IRGRP, S_IROTH};
 use nix::libc;
 use nix::fcntl;
 use std;
@@ -30,7 +37,7 @@ pub fn upload_file(pipe_name:&str,src:&str,opt:&menu::options)/*-> u32*/{
 	match opt.method {
 		menu::method::PIPES=> send_pipe_file(pipe_name, &src, opt, size.clone()),
 		menu::method::QUEUE=> send_queue_file(&qn, &src, opt, size.clone()),
-		_ => println!("hola"),
+		_ => println!("error"),
 	}
 	//return size as u32;
 	//comms::send_message(pipe_name,fs,true);
@@ -92,7 +99,6 @@ pub fn send_pipe_file(pipe_name:&str,src:&str,opt:&menu::options,filesize:u64) /
 }
 
 pub fn send_queue_file(queue:&str,src:&str,opt:&menu::options,filesize:u64) /*->libc::ssize_t*/{
-	println!("aja");
 	let mut pb = ProgressBar::new(filesize);//Why it get corrupts after let mute byte?
 	pb.set_units(Units::Bytes);
 	let srcOri = src;
@@ -105,7 +111,10 @@ pub fn send_queue_file(queue:&str,src:&str,opt:&menu::options,filesize:u64) /*->
 
 	//let mut src_fd = 0;
 	let chunksize =  if opt.chunksize == 0 {comms::MAX_BUFFER} else {opt.chunksize};
-	//let mut attr:libc::mq_attr = libc::mq_attr{mq_curmsgs:0,mq_flags:0,mq_maxmsg:10,mq_msgsize:chunksize};
+	let mut attr:mqueue::MqAttr = mqueue::MqAttr::new(0,10,chunksize as i64,0);
+
+	//mqueue::MqAttr { mq_flags: 0, mq_maxmsg: 10, mq_msgsize: chunksize, mq_curmsgs: 0 };
+	//let mut attr:libc::mq_attr = libc::mq_attr{mq_curmsgs:0,mq_flags:0,mq_maxmsg:10,mq_msgsize:chunksize as  i64};
 	//attr.mq_maxmsg = 10;
 	//attr.mq_msgsize = chunksize;
 	let mut byte = CString::new("").unwrap();
@@ -114,9 +123,12 @@ pub fn send_queue_file(queue:&str,src:&str,opt:&menu::options,filesize:u64) /*->
 
 	unsafe {
 		let src_fd = libc::open(src.as_ptr(), fcntl::O_RDONLY.bits());// Open File
-		let msg_queue:libc::mqd_t = libc::mq_open(queue.as_ptr(), fcntl::O_WRONLY.bits() | fcntl::O_CREAT.bits());
+		let msg_queue:libc::mqd_t = mq_open(&queue, O_CREAT | O_WRONLY,
+                       S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
+                       Some(&attr)).unwrap();//libc::mq_open(queue.as_ptr(), fcntl::O_WRONLY.bits() | fcntl::O_CREAT.bits(),0o666,&attr);
 		if msg_queue < 0 {
-			println!("No se pudo cargar la msg que")
+			//println!("{:?}", );(stderr, "failed to open queue: %s\n", strerror(errno));
+			println!("No se pudo cargar la msg que {}",msg_queue);
 		}
 		//let msg_queue:libc::mqd_t = libc::mq_open(queue.as_ptr(), fcntl::O_WRONLY.bits() | fcntl::O_CREAT.bits(), 0o666, &attr);
 		while transfered<filesize {
@@ -198,6 +210,59 @@ pub fn receive_pipe_file(pipe_name:&str,piped:i32,opt:&menu::options,filesize:i3
 	pb.finish_print("Ok");
 	//return transfered;
 }
+
+pub fn receive_queue_file(queue:&str,dst_fd:i32,opt:&menu::options,filesize:u64) /*->libc::ssize_t*/{
+	let mut pb = ProgressBar::new(filesize);//Why it get corrupts after let mute byte?
+	pb.set_units(Units::Bytes);
+	let queueOri = queue;
+	let (mut transfered, mut chunk, mut wchunk): (u64, libc::ssize_t, libc::ssize_t) = (0,0,0); 
+	
+	let mut chunksize =  if opt.chunksize == 0 {comms::MAX_BUFFER} else {opt.chunksize};
+	let mut attr:mqueue::MqAttr = mqueue::MqAttr::new(0,10,chunksize as i64,0);
+
+	//mqueue::MqAttr { mq_flags: 0, mq_maxmsg: 10, mq_msgsize: chunksize, mq_curmsgs: 0 };
+	//let mut attr:libc::mq_attr = libc::mq_attr{mq_curmsgs:0,mq_flags:0,mq_maxmsg:10,mq_msgsize:chunksize as  i64};
+	//attr.mq_maxmsg = 10;
+	//attr.mq_msgsize = chunksize;
+	let mut byte = CString::new("").unwrap();
+	println!("{}", queue);
+	let mut queue = CString::new(queue).unwrap();
+
+	unsafe {
+		let msg_queue:libc::mqd_t = mq_open(&queue, O_CREAT | O_WRONLY,
+                       S_IWUSR | S_IRUSR | S_IRGRP | S_IROTH,
+                       Some(&attr)).unwrap();//libc::mq_open(queue.as_ptr(), fcntl::O_WRONLY.bits() | fcntl::O_CREAT.bits(),0o666,&attr);
+		if msg_queue < 0 {
+			//println!("{:?}", );(stderr, "failed to open queue: %s\n", strerror(errno));
+			println!("No se pudo cargar la msg que {}",msg_queue);
+		}
+		//let msg_queue:libc::mqd_t = libc::mq_open(queue.as_ptr(), fcntl::O_WRONLY.bits() | fcntl::O_CREAT.bits(), 0o666, &attr);
+		while transfered<filesize {
+			//println!("aja2-{}",transfered)
+			let mut prio = 5u32;;
+			//let len = mq_receive(msg_queue, &mut byte.as_bytes(), &mut prio).unwrap();
+			let len = libc::mq_receive(msg_queue, byte.as_ptr() as *mut i8,chunksize as usize, &mut prio);
+			if (filesize - transfered) > chunksize as u64{
+				chunksize = chunksize
+			}else{
+				chunksize = (filesize - transfered) as i32;
+			}
+			wchunk =libc::write(dst_fd ,byte.as_ptr() as *mut libc::c_void,chunksize as usize);
+			if(wchunk != -1){
+				pb.set(transfered as u64);
+				transfered += chunk as u64;	
+			}
+		}
+		pb.set(filesize);
+		mq_unlink(&queue);
+		//libc::close(fifod);
+		//libc::unlink(pipe_name.as_ptr());
+	}
+	print!("Upload");//Keep the upload status
+	pb.finish_print("Ok");
+	//return transfered;
+}
+
 /*fn init_progress_bar()->{
 	return ProgressBar::new(count);
 }*/

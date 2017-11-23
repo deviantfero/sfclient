@@ -146,27 +146,28 @@ pub fn run_menu() -> MenuOpt{
 	//println!("{}", MenuOpt::NotValid as i32);
 }
 
-pub fn choose_file(dir_status:&str, file_count:u32) -> MenuOpt{
+pub fn choose_file(dir_status:&str, file_count:u32) -> i32{
 	let mut tmp = String::new();
-	let mut opt= MenuOpt::NotValid;
+	let mut opt= 0;//MenuOpt::NotValid;
 	while{
 		print!("{}\nInput a file number:", dir_status);
 		io::stdout().flush().unwrap();
 		io::stdin().read_line(&mut tmp)
             .expect("Failed to read line");
-     	let read_option_int: u32 = match tmp.trim().parse() {
+     	let read_option_int: i32 = match tmp.trim().parse() {
             Ok(num) => {num},
             Err(_) => {
             	println!("Error, ingrese numeros");
-            	MenuOpt::NotValid as u32
+            	-1
+            	//MenuOpt::NotValid as u32
             	//break; /*continue*/	
             },//continue will keep reading same value? Maybe let should be mut?
         };
-        opt = MenuOpt::from_u32(read_option_int);
-        if opt == MenuOpt::NotValid {
+        opt = read_option_int;
+        if opt < 0 {
         	println!("{}", "Enter a valid option...");
         }
-        opt == MenuOpt::NotValid
+        opt < 0
 	} {}// im a do- while
 	return opt;
 }
