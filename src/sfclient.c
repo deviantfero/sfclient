@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -15,13 +16,19 @@
 
 
 struct client_status *status;
+char *self_write, *self_read;
+
+void exitHandler(int sig) {
+	send_message(self_write, MSG_EXIT, true);
+	exit(0);
+}
 
 int main(void) {
 	const char* sfs_path = "/tmp/sfs";
 	/* two pipes per client for an individual thread
 	 * in the server, one for reading, one for writing. */
-	char *self_read = malloc(MAX_BUFFER); 
-	char *self_write = malloc(MAX_BUFFER);
+	self_read = malloc(MAX_BUFFER); 
+	self_write = malloc(MAX_BUFFER);
 	char *self_socket = malloc(MAX_BUFFER);
 	char *self_queue = malloc(MAX_BUFFER);
 	char **res, *dir_status;
@@ -49,6 +56,8 @@ int main(void) {
 	status->server_pid = atoi(res[SENDER]);
 	status->server_dir = res[SIGNAL];
 	status->opts->chunksize = 0;
+
+	signal(SIGINT, exitHandler);
 
 	while(opt != EXIT) {
 		system("clear");
