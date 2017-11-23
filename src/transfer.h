@@ -17,8 +17,8 @@
 #include <stddef.h>
 #include <fcntl.h>
 #include <errno.h>
-#include "comms.h"
 #include "utils.h"
+#include "comms.h"
 #include "menu.h"
 
 

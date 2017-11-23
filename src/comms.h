@@ -1,5 +1,6 @@
 #ifndef COMMS_H
 
+#define COMMS_H
 #include <string.h>
 #include <stropts.h>
 #include <fcntl.h>
@@ -13,7 +14,6 @@
 #include <stdbool.h>
 #include "utils.h"
 
-#define COMMS_H
 
 #define SIGNAL 0
 #define SENDER 1

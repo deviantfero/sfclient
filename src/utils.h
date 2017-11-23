@@ -10,7 +10,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <zlib.h>
-#include "transfer.h"
+#include <stdbool.h>
+
+#define MAX_BUFFER 4096
+// #include "transfer.h"
 
 int buffer_size(const char* format, ...);
 void encrypt(char *message, char *key, ssize_t chunksize);

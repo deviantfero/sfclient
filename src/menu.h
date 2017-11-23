@@ -1,5 +1,6 @@
 #ifndef MENU_H
 
+#define MENU_H
 #define PROMPT "Enter a number: "
 
 #include <string.h>
@@ -44,5 +45,4 @@ struct options *get_default_opts();
 void info_screen(char *info);
 void print_menu(struct options *copt);
 
-#define MENU_H
 #endif /* ifndef MENU_H */
