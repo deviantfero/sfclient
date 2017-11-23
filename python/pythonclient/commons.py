@@ -25,6 +25,7 @@ MSG_ARRIVE    = "hello"
 FIFO_PATH = '/tmp/sfs'
 FIFO_PATHW = '/tmp/sfc' + str(os.getpid()) + 'w'
 FIFO_PATHR = '/tmp/sfc' + str(os.getpid()) + 'r'
+FIFO_PATHQ = '/qsfc' + str(os.getpid())
 
 def readMsg(fifo_path, rm_vals=True, show=True):
     while not os.path.exists(fifo_path):
@@ -42,7 +43,6 @@ def readMsg(fifo_path, rm_vals=True, show=True):
     return res
 
 def writeMsg(fifo_path, input):
-    print("code:", input)
     pipe = open(fifo_path, 'w')
     pipe.write(input+input[len(input)-1])
 

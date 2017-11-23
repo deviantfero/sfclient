@@ -9,7 +9,7 @@ def main():
     msg = getMsgCode()
 
     writeMsg(FIFO_PATH, msg+ MSG_ARRIVE)
-    readMsg(FIFO_PATH)
+    readMsg(FIFO_PATH, show=False)
     
     options = {
         1 : one,

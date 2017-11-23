@@ -42,8 +42,10 @@ def three():
         except ValueError:
             continue
         print("Please enter a valid number")
-        
-    sendFile(files[opt-1])
+    if(SIGNAL == 0):
+        sendFile(files[opt-1])
+    else:
+        sendFileQ(files[opt-1])
     os.system('clear')
 
 def four():
@@ -58,7 +60,10 @@ def four():
 
     f = open( file_info[1][:-1], 'wb+')
     f_size = int(file_info[0][:-1])
-    readFilePipe(FIFO_PATHR, f_size, f)
+    if(SIGNAL == 0):
+        readFilePipe(FIFO_PATHR, f_size, f)
+    else:
+        readFileQueue(FIFO_PATHQ, f_size, f)
     f.close()
                 
     
@@ -73,8 +78,24 @@ def five():
     os.system('clear')
 
 def six():
-    writeMsg(FIFO_PATHW, MSG_LS)
-    readMsg(FIFO_PATHR)
+    global SIGNAL
+    print(
+'''
+[0] Pipes
+[1] Queues''')
+    opt = 0
+    while True:
+        try:
+            opt = int(input("Enter a method number:"))
+            if(opt == 0 or opt == 1):
+                break
+        except ValueError:
+            continue
+        print("Please enter a valid number")
+    writeMsg(FIFO_PATHW, getMsgCode() + MSG_METHOD)
+    writeMsg(FIFO_PATHW, getMsgCode() + str(opt))
+    os.system('clear')
+    SIGNAL = opt
 
 def seven():
     global MAX_BUFFER
@@ -100,16 +121,17 @@ def eight():
     exit(0)
     
 def showMenu():
+    method = ['pipes', 'queues']
     print('''
 [1]  See server content
 [2]  See server status
 [3]  Upload a file
 [4]  Download a file
 [5]  See client content
-[6]  Set transfer method [pipes]
+[6]  Set transfer method [{1}]
 [7]  Set chunksize [{0}]
 [8]  Exit
-    '''.format(MAX_BUFFER))
+    '''.format(MAX_BUFFER, method[SIGNAL]))
     while True:
         try:
             opt = int(input("\nEnter a number:"))
