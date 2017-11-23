@@ -164,7 +164,11 @@ int main(void) {
 				send_message(self_write, MSG_CHUNKSIZE, true);
 				send_message(self_write, str_chunksize, true);
 				break;
-			} case EXIT: 
+			} case TOGGLE_DEBUG:
+				status->opts->debug = !status->opts->debug;
+				//send message
+				break;
+			case EXIT: 
 				send_message(self_write, MSG_EXIT, true);
 				exit(0);
 			default: break;

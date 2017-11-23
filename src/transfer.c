@@ -52,12 +52,13 @@ ssize_t send_pipe_file(const char *pipe_name, int src_fd, struct options *opt, s
 		if((chunk = read(src_fd, byte, chunksize)) == -1) fprintf(stderr, "error reading a byte");
 
 		if(opt->encrypt)  encrypt(byte, KEY, chunk);
+		if(opt->debug)    fprintf(stdout, "[debug] %s\n", byte);
 
 		wchunk = write(fifod, byte, chunksize);
 		if(wchunk != -1)
 			transfered += chunk;
 		memset(byte, 0, chunksize + 1);
-		fprogress_bar(stdout, filesize, transfered);
+		if(!opt->debug) fprogress_bar(stdout, filesize, transfered);
 	}
 
 	close(src_fd);
@@ -84,13 +85,14 @@ ssize_t send_queue_file(const char *queue, int src_fd, struct options *opt, size
 		if((chunk = read(src_fd, buffer, chunksize)) == -1) fprintf(stderr, "error reading a buffer");
 
 		if(opt->encrypt)  encrypt(buffer, KEY, chunk);
+		if(opt->debug)    fprintf(stdout, "[debug] %s\n", buffer);
 
 		wchunk = mq_send(msg_queue, buffer, chunksize, PRIORITY);
 		if(wchunk == 0)
 			transfered += chunk;
 		else if(wchunk == -1)
 			fprintf(stderr, "failed to write queue: %s\n", strerror(errno));
-		fprogress_bar(stdout, filesize, transfered);
+		if(!opt->debug) fprogress_bar(stdout, filesize, transfered);
 	}
 
 	close(src_fd);
@@ -113,11 +115,12 @@ ssize_t send_sock_file(const char *sock_name, int src_fd, struct options *opt, s
 		if((ssize_t)(chunk = read(src_fd, buffer, chunksize)) == -1) fprintf(stderr, "error reading a byte");
 
 		if(opt->encrypt)  encrypt(buffer, KEY, chunk);
+		if(opt->debug)    fprintf(stdout, "[debug] %s\n", buffer);
 
 		wchunk = write(ssock, buffer, chunksize);
 		if(wchunk != -1)
 			transfered += chunk;
-		fprogress_bar(stdout, filesize, transfered);
+		if(!opt->debug) fprogress_bar(stdout, filesize, transfered);
 	}
 	close(ssock);
 
@@ -166,11 +169,12 @@ ssize_t receive_pipe_file(const char *pipe_name, int piped, struct options *opt,
 
 		/* if(opt->compress) chunk_inflate(buffer, chunksize + 4); */
 		if(opt->encrypt)  encrypt(buffer, KEY, err);
+		if(opt->debug)    fprintf(stdout, "[debug] %s\n", buffer);
 
 		if(err != -1 && (wchunk = write(piped, buffer, chunksize)) != -1) {
 			count += wchunk;
 		}
-		fprogress_bar(stdout, filesize, count);
+		if(!opt->debug) fprogress_bar(stdout, filesize, count);
 		memset(buffer, 0, chunksize + 1);
 	}
 	return count;
@@ -188,11 +192,12 @@ ssize_t receive_sock_file(const char *sock_name, int dst_fd, struct options *opt
 					(size_t)chunksize : (size_t)(filesize - count);
 
 		if(opt->encrypt)  encrypt(buffer, KEY, err);
+		if(opt->debug)    fprintf(stdout, "[debug] %s\n", buffer);
 
 		if(err != -1 && (wchunk = write(dst_fd, buffer, chunksize)) != -1) {
 			count += wchunk;
 		}
-		fprogress_bar(stdout, filesize, count);
+		if(!opt->debug) fprogress_bar(stdout, filesize, count);
 		memset(buffer, 0, chunksize + 1);
 	}
 
@@ -214,13 +219,14 @@ ssize_t receive_queue_file(const char *queue, int dst_fd, struct options *opt, s
 					(size_t)chunksize : (size_t)(filesize - count);
 
 		if(opt->encrypt)  encrypt(buffer, KEY, err);
+		if(opt->debug)    fprintf(stdout, "[debug] %s\n", buffer);
 
 		if(err != -1 && (wchunk = write(dst_fd, buffer, chunksize)) != -1) {
 			count += wchunk;
 		} else if(err == -1) {
 			fprintf(stderr, "failed to receive from buffer: %s\n", strerror(errno));
 		}
-		fprogress_bar(stdout, filesize, count);
+		if(!opt->debug) fprogress_bar(stdout, filesize, count);
 		memset(buffer, 0, chunksize + 1);
 
 		/* weird bug */

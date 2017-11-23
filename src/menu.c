@@ -2,8 +2,9 @@
 
 
 void print_menu(struct options *copt) {
-	char *encryption_entry = copt->encrypt ? "[on]" : "[off]";
+	char *encryption_entry  = copt->encrypt  ? "[on]" : "[off]";
 	char *compression_entry = copt->compress ? "[on]" : "[off]";
+	char *debug_entry       = copt->debug    ? "[on]" : "[off]";
 	printf("[1]  See server content\n");
 	printf("[2]  See server status\n");
 	printf("[3]  Upload a file\n");
@@ -13,7 +14,8 @@ void print_menu(struct options *copt) {
 	printf("[7]  See client content\n");
 	printf("[8]  Set transfer method [%s]\n", get_method_name(copt->method));
 	printf("[9]  Set chunksize [%d]\n", copt->chunksize);
-	printf("[10] Exit\n\n");
+	printf("[10] Debug transfer %s\n", debug_entry);
+	printf("[11] Exit\n\n");
 	printf(PROMPT);
 }
 
@@ -82,6 +84,7 @@ struct options *get_default_opts() {
 	default_opts->compress = false;
 	default_opts->method = 0;
 	default_opts->chunksize = 0;
+	default_opts->debug = false;
 
 	return default_opts;
 }

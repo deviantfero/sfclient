@@ -21,12 +21,14 @@ enum menu_opt {
 	CLIENT_LS,
 	SET_MODE,
 	CHANGE_CHUNKSIZE,
+	TOGGLE_DEBUG,
 	EXIT
 };
 
 struct options {
 	bool encrypt;
 	bool compress;
+	bool debug;
 	int chunksize;
 	int method;
 };
