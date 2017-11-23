@@ -69,6 +69,7 @@ pub fn send_pipe_file(pipe_name:&str,src:&str,opt:&menu::options,filesize:u64) /
 		let fifod = /*libc::*/libc::open(pipe_name.as_ptr(), fcntl::O_WRONLY.bits(),PRIORITY);
 		let mut byte = CString::new("").unwrap();
 		while transfered<filesize {
+			println!("{}-{}",transfered ,filesize);
 			chunk = libc::read(src_fd, byte.as_ptr() as *mut libc::c_void, chunksize as usize);
 			if chunk == -1 {
 				eprintln!("error reading a byte");
@@ -82,7 +83,7 @@ pub fn send_pipe_file(pipe_name:&str,src:&str,opt:&menu::options,filesize:u64) /
 				pb.set(transfered);
 				transfered += chunk as u64;	
 			}
-			//byte = CString::new("").unwrap();
+			byte = CString::new("").unwrap();
 			//println!("clean:{:?}", byte);
 			//test_bar();
 			//pb.inc();
@@ -195,6 +196,7 @@ pub fn receive_pipe_file(pipe_name:&str,piped:i32,opt:&menu::options,filesize:i3
 				pb.set(transfered as u64);
 				transfered += chunk as i32;	
 			}
+			byte = CString::new("").unwrap();
 			//byte = CString::new("").unwrap();
 			//println!("clean:{:?}", byte);
 			//test_bar();
