@@ -29,7 +29,7 @@ FIFO_PATHQ = '/qsfc' + str(os.getpid())
 
 def readMsg(fifo_path, rm_vals=True, show=True):
     while not os.path.exists(fifo_path):
-        time.sleep(1)
+        time.sleep(0.1)
 
     res = []
     os.system('clear')

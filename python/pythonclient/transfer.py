@@ -5,7 +5,7 @@ import posix_ipc
 
 def readFilePipe(fifo_path, data_size, out_file):
     while not os.path.exists(fifo_path):
-        time.sleep(1)
+        time.sleep(0.1)
 
     count = 0
     with open(fifo_path, 'rb') as fdata:
@@ -21,7 +21,7 @@ def readFileQueue(fifo_path, data_size, out_file):
     # while not os.path.exists(fifo_path):
     #     time.sleep(1)
     
-    time.sleep(1)
+    time.sleep(0.1)
 
     # flags = posix_ipc.O_CREX
     mq = posix_ipc.MessageQueue(name = fifo_path, flags=posix_ipc.O_CREAT, max_message_size=MAX_BUFFER, write = False)
