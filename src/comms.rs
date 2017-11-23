@@ -18,6 +18,7 @@ pub const MAX_TOKENS:u32= 10;
 pub const DFT_TRIES:u32= 7;
 pub const WAIT_TIME:u32= 10000;
 pub const MAX_BUFFER:i32= 4096;
+pub const MSG_METHOD: &'static str = "method";
 pub const MSG_LS: &'static str = "ls";
 pub const MSG_STATUS: &'static str = "status";
 pub const MSG_UPLD: &'static str = "upload";
@@ -95,8 +96,9 @@ pub fn wait_message(pipe_name:&str,tries:u32) -> [String; 2]{
 		}
 	}
 	//let msg = String::new();
-	msg[SIGNAL] = format!("{}", msg_buffer); //Format String
-	msg[SENDER] = format!("{}", msg_buffer); //Format String
+	msg[SENDER] = format!("{}", msg_buffer).chars().take(7).collect(); //Format String
+	//msg[SENDER] = format!("{}", msg_buffer); //Format String
+	msg[SIGNAL] = format!("{}", msg_buffer).chars().skip(7).collect(); //Format String
 	unsafe{
 		libc::close(fifod_g);
 	}
