@@ -27,13 +27,16 @@ FIFO_PATHW = '/tmp/sfc' + str(os.getpid()) + 'w'
 FIFO_PATHR = '/tmp/sfc' + str(os.getpid()) + 'r'
 FIFO_PATHQ = '/qsfc' + str(os.getpid())
 
+
 def readMsg(fifo_path, rm_vals=True, show=True):
     while not os.path.exists(fifo_path):
         time.sleep(0.1)
 
     res = []
     os.system('clear')
-    with codecs.open(fifo_path, "r",encoding='utf-8', errors='ignore') as fdata:
+    with codecs.open(fifo_path, "r",
+                     encoding='utf-8',
+                     errors='ignore') as fdata:
         if(rm_vals):
             fdata.read(7)
         for line in fdata:
@@ -42,17 +45,20 @@ def readMsg(fifo_path, rm_vals=True, show=True):
                 print(line, end="")
     return res
 
+
 def writeMsg(fifo_path, input):
     pipe = open(fifo_path, 'w')
     pipe.write(input+input[len(input)-1])
 
+
 def mkfifoF(tpath):
-     try:
-         os.mkfifo(tpath, 0o666)
-     except OSError as e:
-         raise
-     else:
-         return tpath
+    try:
+        os.mkfifo(tpath, 0o666)
+    except OSError as e:
+        raise
+    else:
+        return tpath
+
 
 def getMsgCode():
     msg = ""
@@ -60,6 +66,6 @@ def getMsgCode():
     size_pid = math.ceil(math.log(pid, 10))
 
     for i in range(7-size_pid):
-        msg+="0"
-    msg+=str(pid)
+        msg += "0"
+    msg += str(pid)
     return msg

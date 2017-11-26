@@ -1,11 +1,14 @@
-from commons import *
 from enum import Enum
-from transfer import *
+import os
+from . import transfer
+from . import commons
+from .commons import MAX_BUFFER, SIGNAL
+
 
 class Menu(Enum):
     NOT_VALID = 0
     SERVER_LS = 1
-    SERVER_STATE =2 
+    SERVER_STATE = 2
     UPLD_FILE = 3
     DWNLD_FILE = 4
     CLIENT_LS = 5
@@ -13,25 +16,30 @@ class Menu(Enum):
     CHANGE_CHUNKSIZE = 7
     EXIT = 8
 
+
 def one():
-    writeMsg(FIFO_PATHW, getMsgCode() + MSG_LS)
-    readMsg(FIFO_PATHR)
+    commons.writeMsg(commons.FIFO_PATHW,
+                     commons.getMsgCode() + commons.MSG_LS)
+    commons.readMsg(commons.FIFO_PATHR)
     input("\nPress enter ")
     os.system('clear')
 
+
 def two():
-    writeMsg(FIFO_PATHW, getMsgCode() + MSG_STATUS)
-    readMsg(FIFO_PATHR)
+    commons.writeMsg(commons.FIFO_PATHW,
+                     commons.getMsgCode() + commons.MSG_STATUS)
+    commons.readMsg(commons.FIFO_PATHR)
     input("\nPress enter ")
     os.system('clear')
+
 
 def three():
     os.system('clear')
     files = os.listdir()
     i = 1
     for f in files:
-        print( "[{}] {:>48}".format(str(i), f)  )
-        i+=1
+        print("[{}] {:>48}".format(str(i), f))
+        i += 1
 
     opt = 0
     while True:
@@ -43,46 +51,49 @@ def three():
             continue
         print("Please enter a valid number")
     if(SIGNAL == 0):
-        sendFile(files[opt-1])
+        transfer.sendFile(files[opt-1])
     else:
-        sendFileQ(files[opt-1])
+        transfer.sendFileQ(files[opt-1])
     os.system('clear')
 
+
 def four():
-    writeMsg(FIFO_PATHW, getMsgCode() + MSG_DOWNLD)
-    files = readMsg(FIFO_PATHR, show = False)
-    file_ammount = readMsg(FIFO_PATHR, show = False)
-    opt = choose_file(files)
+    commons.writeMsg(commons.FIFO_PATHW,
+                     commons.getMsgCode() + commons.MSG_DOWNLD)
+    files = commons.readMsg(commons.FIFO_PATHR, show=False)
+    opt = transfer.choose_file(files)
+    commons.writeMsg(commons.FIFO_PATHW, commons.getMsgCode() + str(opt - 1))
 
-    writeMsg(FIFO_PATHW, getMsgCode() + str(opt -1))
+    file_info = [commons.readMsg(commons.FIFO_PATHR, show=False)[0],
+                 commons.readMsg(commons.FIFO_PATHR, show=False)[0]]
 
-    file_info = [readMsg(FIFO_PATHR, show = False)[0], readMsg(FIFO_PATHR, show = False)[0]]
-
-    f = open( file_info[1][:-1], 'wb+')
+    f = open(file_info[1][:-1], 'wb+')
     f_size = int(file_info[0][:-1])
     if(SIGNAL == 0):
-        readFilePipe(FIFO_PATHR, f_size, f)
+        transfer.readFilePipe(commons.FIFO_PATHR, f_size, f)
     else:
-        readFileQueue(FIFO_PATHQ, f_size, f)
+        transfer.readFileQueue(commons.FIFO_PATHQ, f_size, f)
     f.close()
-                
-    
+
+
 def five():
     os.system('clear')
     files = os.listdir()
     i = 1
     for f in files:
-        print( "[{}] {:>48}".format(str(i), f)  )
-        i+=1
+        print("[{}] {:>48}".format(str(i), f))
+        i += 1
     input("\nPress enter ")
     os.system('clear')
+
 
 def six():
     global SIGNAL
     print(
-'''
-[0] Pipes
-[1] Queues''')
+        '''
+        [0] Pipes
+        [1] Queues'''
+    )
     opt = 0
     while True:
         try:
@@ -92,14 +103,17 @@ def six():
         except ValueError:
             continue
         print("Please enter a valid number")
-    writeMsg(FIFO_PATHW, getMsgCode() + MSG_METHOD)
-    writeMsg(FIFO_PATHW, getMsgCode() + str(opt))
+    commons.writeMsg(commons.FIFO_PATHW,
+                     commons.getMsgCode() + commons.MSG_METHOD)
+    commons.writeMsg(commons.FIFO_PATHW, commons.getMsgCode() + str(opt))
     os.system('clear')
     SIGNAL = opt
 
+
 def seven():
     global MAX_BUFFER
-    writeMsg(FIFO_PATHW, getMsgCode() + MSG_CHUNKSIZE)
+    commons.writeMsg(commons.FIFO_PATHW,
+                     commons.getMsgCode() + commons.MSG_CHUNKSIZE)
     os.system('clear')
     opt = 0
     while True:
@@ -110,16 +124,18 @@ def seven():
         except ValueError:
             continue
         print("Please enter a valid number")
-    writeMsg(FIFO_PATHW, getMsgCode() + str(opt))
+    commons.writeMsg(commons.FIFO_PATHW, commons.getMsgCode() + str(opt))
     MAX_BUFFER = opt
     os.system('clear')
 
 
 def eight():
-    writeMsg(FIFO_PATHW, getMsgCode() + MSG_EXIT)
+    commons.writeMsg(commons.FIFO_PATHW,
+                     commons.getMsgCode() + commons.MSG_EXIT)
     os.system('clear')
     exit(0)
-    
+
+
 def showMenu():
     method = ['pipes', 'queues']
     print('''

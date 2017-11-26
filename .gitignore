@@ -1,6 +1,8 @@
 build
+__*/
 bin
 *.swp
+*.pyc
 # Prerequisites
 *.d
 
