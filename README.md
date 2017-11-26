@@ -4,7 +4,14 @@ sfclient
 Python client
 
 ## How to run
-Default python project :new_moon_with_face:
+:new_moon_with_face:
+```
+# install requirements
+pip install -r requirements.txt
+
+# run the client
+python -m sfc
+```
 
 ## Dependencies
 
