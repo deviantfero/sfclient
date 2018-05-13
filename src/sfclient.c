@@ -18,7 +18,7 @@
 struct client_status *status;
 char *self_write, *self_read;
 
-void exitHandler(int sig) {
+void exit_handler(int sig) {
 	send_message(self_write, MSG_EXIT, true);
 	exit(0);
 }
@@ -57,7 +57,7 @@ int main(void) {
 	status->server_dir = res[SIGNAL];
 	status->opts->chunksize = 0;
 
-	signal(SIGINT, exitHandler);
+	signal(SIGINT, exit_handler);
 
 	while(opt != EXIT) {
 		system("clear");
@@ -67,11 +67,13 @@ int main(void) {
 				send_message(self_write, MSG_LS, true);
 				res = wait_message(self_read, DFT_TRIES);
 				info_screen(res[SIGNAL]);
+				free(res);
 				break;
 			case SERVER_STATE:
 				send_message(self_write, MSG_STATUS, true);
 				res = wait_message(self_read, DFT_TRIES);
 				info_screen(res[SIGNAL]);
+				free(res);
 				break;
 			case UPLD_FILE:
 				opt = choose_file(file_menu, status->current_dir->file_count);
@@ -128,7 +130,7 @@ int main(void) {
 				fprintf(stdout, "\nPress enter to continue...");
 				while(getchar() != 10);
 
-				/* here goes select function for choosing method of receiving */
+				free(res);
 				break;
 			} case TOGGLE_ENCRYPTION:
 				status->opts->encrypt = !status->opts->encrypt;

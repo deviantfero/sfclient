@@ -24,6 +24,7 @@ char *sprint_dir_status(struct client_status *s) {
 
 		free(file_str);
 	}
+
 	return str;
 }
 

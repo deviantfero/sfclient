@@ -40,6 +40,7 @@ int method_menu() {
 		m = atoi(fgets(tmp, MAX_BUFFER, stdin));
 	} while(m < PIPES || m > SOCKETS);
 
+	free(tmp);
 	return m;
 }
 
@@ -55,6 +56,7 @@ int run_menu(struct options *copt) {
 		if(opt == NOT_VALID) puts("Enter a valid option...");
 	} while(opt == NOT_VALID);
 
+	free(tmp);
 	return opt;
 }
 
@@ -68,6 +70,7 @@ int choose_file(const char *dir_status, int file_count) {
 		opt = atoi(tmp);
 	} while(opt < 1 || opt > file_count);
 
+	free(tmp);
 	return opt - 1;
 }
 
